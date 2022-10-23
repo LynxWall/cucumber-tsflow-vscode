@@ -1,0 +1,108 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	"typescript.tsc.autoDetect": "off",
+	"typescript.tsdk": "node_modules\\typescript\\lib",
+	"npm.packageManager": "yarn",
+	"eslint.packageManager": "yarn",
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true,
+	"editor.formatOnType": false,
+
+	// Prettier configuration - Javascript and JSX Formatter
+	"prettier.trailingComma": "none",
+	"prettier.useTabs": true,
+	"prettier.tabWidth": 2,
+	"prettier.semi": true,
+	"prettier.singleQuote": true,
+	"prettier.printWidth": 120,
+	"prettier.arrowParens": "avoid",
+	"prettier.vueIndentScriptAndStyle": true,
+	"prettier.htmlWhitespaceSensitivity": "ignore",
+	"prettier.endOfLine": "crlf",
+
+	"files.exclude": {
+		"**/.nyc_output": true,
+		"**/.yarn": true,
+		"**/coverage": true,
+		"**/node_modules": true,
+		"**/.vscode-test": true,
+		"out": true // set this to true to hide the "out" folder with the compiled JS files
+	},
+	"search.exclude": {
+		"out": true // set this to false to include "out" folder in search results
+	},
+
+	// keep space befor function parens
+	"typescript.format.insertSpaceBeforeFunctionParenthesis": true,
+	"javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+
+	// File type editor settings
+	"[feature]": {
+		"editor.tabSize": 2
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2
+	},
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2
+	},
+	"[scss]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2
+	},
+	"[vue]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.tabSize": 2,
+		"editor.tabCompletion": "onlySnippets"
+	},
+	"[xml]": {
+		"editor.defaultFormatter": "mikeburgh.xml-format",
+		"editor.tabSize": 2
+	},
+	"nugetpackagemanagergui.nuget.packageVersionsUrls": [
+		"https://api.nuget.org/v3-flatcontainer/{{packageName}}/index.json"
+	],
+	"nugetpackagemanagergui.nuget.searchPackage.urls": ["https://azuresearch-usnc.nuget.org/query"],
+	"workbench.colorCustomizations": {
+		"activityBar.activeBackground": "#28e1bd",
+		"activityBar.activeBorder": "#fa45d4",
+		"activityBar.background": "#28e1bd",
+		"activityBar.foreground": "#15202b",
+		"activityBar.inactiveForeground": "#15202b99",
+		"activityBarBadge.background": "#cb57e8",
+		"activityBarBadge.foreground": "#15202b",
+		"sash.hoverBorder": "#28e1bd",
+		"statusBar.background": "#1abc9c",
+		"statusBar.foreground": "#15202b",
+		"statusBarItem.hoverBackground": "#148f77",
+		"statusBarItem.remoteBackground": "#1abc9c",
+		"statusBarItem.remoteForeground": "#15202b",
+		"titleBar.activeBackground": "#1abc9c",
+		"titleBar.activeForeground": "#15202b",
+		"titleBar.inactiveBackground": "#1abc9c99",
+		"titleBar.inactiveForeground": "#15202b99",
+		"commandCenter.border": "#15202b99"
+	},
+	"peacock.color": "#1abc9c",
+	"markdownlint.config": {
+		"default": true,
+		"MD003": { "style": "atx" },
+		"MD007": { "indent": 2 },
+		"MD032": false,
+		"MD022": false,
+		"MD024": false,
+		"no-hard-tabs": false
+	}
+}
+

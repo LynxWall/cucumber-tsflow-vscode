@@ -1,0 +1,126 @@
+{
+	"name": "cucumber-tsflow",
+	"displayName": "Cucumber TsFlow for VSCode",
+	"description": "",
+	"version": "0.0.1",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.71.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"configuration": [
+			{
+				"title": "Cucumber-tsflow VSCode Config",
+				"properties": {
+					"cucumber-tsflow.configFilePath": {
+						"type": "string",
+						"default": "",
+						"description": "Cucumber config file path (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')",
+						"scope": "window"
+					},
+					"cucumber-tsflow.profile": {
+						"type": "string",
+						"default": "default",
+						"description": "Cucumber profile to use when running or debugging tests.",
+						"scope": "window"
+					},
+					"cucumber-tsflow.cucumberPath": {
+						"type": "string",
+						"default": "",
+						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)",
+						"scope": "window"
+					},
+					"cucumber-tsflow.projectPath": {
+						"type": "string",
+						"default": "",
+						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)",
+						"scope": "window"
+					},
+					"cucumber-tsflow.runOptions": {
+						"type": "array",
+						"default": [],
+						"items": {
+							"type": "string",
+							"description": "CLI Option e.g. ['--backtrace', 'true']"
+						},
+						"description": "Add CLI Options to the Cucumber-tsflow Command e.g. https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options",
+						"scope": "window"
+					},
+					"cucumber-tsflow.debugOptions": {
+						"type": "object",
+						"default": {},
+						"description": "Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] })",
+						"scope": "window"
+					},
+					"cucumber-tsflow.runCommand": {
+						"type": "string",
+						"default": "",
+						"description": "The command that runs cucumber-tsflow. Defaults to: node \"{Absolute Path}/node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow\"",
+						"scope": "window"
+					},
+					"cucumber-tsflow.disableCodeLens": {
+						"type": "boolean",
+						"default": false,
+						"description": "Disable CodeLens feature",
+						"scope": "window"
+					},
+					"cucumber-tsflow.stepFileSelector": {
+						"type": "string",
+						"default": "**/steps/**/*.ts",
+						"description": "CodeLens will be shown on files matching this pattern"
+					},
+					"cucumber-tsflow.featureFileSelector": {
+						"type": "string",
+						"default": "**/features/**/*.feature",
+						"description": "CodeLens will be shown on files matching this pattern"
+					},
+					"cucumber-tsflow.preserveEditorFocus": {
+						"type": "boolean",
+						"default": false,
+						"description": "Preserve focus on editor when running tests",
+						"scope": "window"
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run -S esbuild-base -- --minify",
+		"esbuild-base": "rimraf out && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+		"build": "npm run -S esbuild-base -- --sourcemap",
+		"watch": "npm run -S esbuild-base -- --sourcemap --watch",
+		"format": "prettier --write \"src/**/*.ts\"&& npm run test -- --fix",
+		"lint": "eslint src --ext ts && tsc --noEmit",
+		"build:test": "rimraf out && tsc -p ./",
+		"test": "npm run -S build:test && node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@lynxwall/cucumber-tsflow": "^5.1.2",
+		"@types/glob": "^7.2.0",
+		"@types/mocha": "^9.1.1",
+		"@types/node": "^16.11.64",
+		"@types/semver": "^7.3.12",
+		"@types/vscode": "^1.72.0",
+		"@typescript-eslint/eslint-plugin": "^5.39.0",
+		"@typescript-eslint/parser": "^5.39.0",
+		"@vscode/test-electron": "^2.1.5",
+		"esbuild": "^0.14.34",
+		"eslint": "^8.25.0",
+		"glob": "^8.0.3",
+		"mocha": "^10.0.0",
+		"prettier": "^2.7.1",
+		"rimraf": "^3.0.2",
+		"typescript": "~4.7.4"
+	},
+	"dependencies": {
+		"minimatch": "^5.1.0",
+		"semver": "^7.3.8"
+	}
+}
