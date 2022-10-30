@@ -1198,9 +1198,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cucumber-tsflow@workspace:.":
+"cucumber-tsflow-vscode@workspace:.":
   version: 0.0.0-use.local
-  resolution: "cucumber-tsflow@workspace:."
+  resolution: "cucumber-tsflow-vscode@workspace:."
   dependencies:
     "@lynxwall/cucumber-tsflow": ^5.1.2
     "@types/glob": ^7.2.0

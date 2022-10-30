@@ -1,71 +1,62 @@
-# cucumber-tsflow README
+# Cucumber TsFlow for VS Code
+<base target="_blank">
 
-This is the README for your extension "cucumber-tsflow". After writing up a brief description, we recommend including the following sections.
+This extension provides Run and Debug support in Step files for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) in VS Code.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+The initial release of this extension uses Code Lens support in VS Code to add Run and Debug commands to each Given, When, Then step found in a Cucumber step file. In addition, RunAll and DebugAll commands are added to classes in a step file that are annotated with a @binding decorator.
 
-For example if there is an image subfolder under your extension project workspace:
+![Run or Debug cucumber-tsflow](images/CucumberAnimation.gif)
 
-\!\[feature X\]\(images/feature-x.png\)
+The execution of Cucumber tests is accomplished by referencing a feature or a scenario within a Cucumber Feature file.  When a step definition file is opened in VS Code, this extension will map the steps it finds with features and scenarios that you have defined. 
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### Additional Features
+
+- Support for "multi-root" or "monorepo" projects. When a step file is loaded the extension will search for the closest cucumber configuration file in relation to the step file. In addition, it will search up the file hierarchy for a node_modules folder that contains @lynxwall/cucumber-tsflow. You can also specify these file paths in VS Code settings.
+- Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v8.0.0/docs/configuration.md) profiles to execute tests in cucumber-tsflow. You can specify the profile to use in your tests through VS Code settings. The default configuration uses the `default` profile in your cucumber configuration.
+
+## Future Releases
+
+This first release focuses on providing run/debug support in step files using Code Lens in VS Code. Planned future releases will include the following:
+
+- VS Code Test Explorer integration - Organized by features -> Scenarios -> Steps.
+- Code snippet generation - Currently cucumber-tsflow will generate code snippets in the terminal output when not able to find matching code for a step. This update will provide the ability to generate complete step definition files for a feature or snippets for scenarios and steps.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+This extension requires [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version 5.1.2 or higher.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+This extension should support most projects with it's default configuration. However, several configuration settings have been provided to support different project structures and cucumber configurations.
 
-For example:
+Settings for this extension all start with `cucumber-tsflow` and would normally be added to a ***settings.json*** file in your workspace under the `.vscode` folder. You can also add cucumber-tsflow settings to your global user settings.
+
+For example, if you wanted to use a different cucumber configuration profile you would add the following to ***settings.json***:
+
+`"cucumber-tsflow.profile": "myprofile"`
 
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+| Setting                   | Type    | Default                               | Description                                                  |
+| ------------------------- | ------- | ------------------------------------- | ------------------------------------------------------------ |
+| `configFile`              | string  |                                       | Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json') |
+| `profile`                 | string  | `default`                             | Cucumber profile to use when running or debugging tests.     |
+| `cucumberPath`            | string  |                                       | Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test) |
+| `projectPath`             | string  |                                       | Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder) |
+| `runOptions`              | array   |                                       | Add [CLI Options ![](images/external-link-16.png)](https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options) to the Cucumber-tsflow Command. (e.g. ['--backtrace', 'true']) |
+| `debugOptions`            | object  |                                       | Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] }) |
+| `codeLensStepSelector`    | string  | `**/{steps,step_definitions}/**/*.ts` | Code Lens will be shown on files matching this glob pattern  |
+| `codeLensFeatureSelector` | string  | `**/features/**/*.feature`            | Code Lens will be shown on files matching this glob pattern  |
+| `preserveEditorFocus`     | boolean | false                                 | Preserve focus on editor when running tests                  |
 
-## Known Issues
+## Change Log
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+See the Change Log [here ![](images/external-link-16.png)](CHANGELOG.md)
 
-## Release Notes
+## Issues
 
-Users appreciate release notes as you update your extension.
+Submit [issues ![](images/external-link-16.png)](https://github.com/LynxWall/cucumber-tsflow-vscode/issues) if you find any bug or have any suggestions.
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+## Enjoy!
