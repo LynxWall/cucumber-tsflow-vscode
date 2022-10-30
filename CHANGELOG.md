@@ -10,3 +10,9 @@ Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsf
 ## [1.0.0]
 
 - Initial release
+
+## [1.0.1]
+
+### Changed
+
+- Changed activation event to startup.
