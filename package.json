@@ -85,15 +85,15 @@
 						"description": "Disable Code Lens feature",
 						"scope": "window"
 					},
-					"cucumber-tsflow.codeLensStepSelector": {
+					"cucumber-tsflow.stepsSelector": {
 						"type": "string",
 						"default": "**/{steps,step_definitions}/**/*.ts",
-						"description": "Code Lens will be shown on files matching this glob pattern"
+						"description": "Glob pattern used to find step files in your workspace. The default supports multiple test projects in a workspace."
 					},
-					"cucumber-tsflow.codeLensFeatureSelector": {
+					"cucumber-tsflow.featuresSelector": {
 						"type": "string",
 						"default": "**/features/**/*.feature",
-						"description": "Code Lens will be shown on files matching this glob pattern"
+						"description": "Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace."
 					},
 					"cucumber-tsflow.preserveEditorFocus": {
 						"type": "boolean",

@@ -32,21 +32,21 @@ export const activate = async (context: vscode.ExtensionContext) => {
 		// initialize a code lense provider for step files
 		const codeLensProvider = new StepCodeLensProvider();
 		if (!ctvConfig.disableCodeLens) {
-			const docSelectors: vscode.DocumentFilter[] = [{ pattern: ctvConfig.codeLensStepSelector }];
+			const docSelectors: vscode.DocumentFilter[] = [{ pattern: ctvConfig.stepsSelector }];
 			const codeLensProviderDisposable = vscode.languages.registerCodeLensProvider(docSelectors, codeLensProvider);
 			context.subscriptions.push(codeLensProviderDisposable);
 		}
 
 		// handle feature file edits. Keeps the gherkin feature data up to date
 		vscode.workspace.onDidChangeTextDocument(function (e) {
-			if (minimatch(e.document.uri.path, ctvConfig.codeLensFeatureSelector)) {
+			if (minimatch(e.document.uri.path, ctvConfig.featuresSelector)) {
 				stepFileManager.updateFeature(e.document.uri.path, e.document.getText());
 			}
 		});
 
 		// handle saves to a feature file. Keeps the gherkin feature data up to date
 		vscode.workspace.onDidSaveTextDocument(function (e) {
-			if (minimatch(e.uri.path, ctvConfig.codeLensFeatureSelector)) {
+			if (minimatch(e.uri.path, ctvConfig.featuresSelector)) {
 				stepFileManager.updateFeature(e.uri.path);
 			}
 		});

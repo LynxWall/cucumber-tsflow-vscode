@@ -11,6 +11,10 @@ The initial release of this extension uses Code Lens support in VS Code to add R
 
 The execution of Cucumber tests is accomplished by referencing a feature or a scenario within a Cucumber Feature file.  When a step definition file is opened in VS Code, this extension will map the steps it finds with features and scenarios that you have defined. 
 
+### Hooks (beforeAll, before, beforeStep, afterAll, after, afterStep)
+
+This extension **does not** add Code Lens actions to cucumber-tsflow hooks. However, you can add ***breakpoints*** to code in a hook step and then ***Debug*** a scenario that should invoke the hook.
+
 ### Additional Features
 
 - Support for "multi-root" or "monorepo" projects. When a step file is loaded the extension will search for the closest cucumber configuration file in relation to the step file. In addition, it will search up the file hierarchy for a node_modules folder that contains @lynxwall/cucumber-tsflow. You can also specify these file paths in VS Code settings.
@@ -47,8 +51,8 @@ This extension contributes the following settings:
 | `projectPath`             | string  |                                       | Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder) |
 | `runOptions`              | array   |                                       | Add [CLI Options ![](images/external-link-16.png)](https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options) to the Cucumber-tsflow Command. (e.g. ['--backtrace', 'true']) |
 | `debugOptions`            | object  |                                       | Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] }) |
-| `codeLensStepSelector`    | string  | `**/{steps,step_definitions}/**/*.ts` | Code Lens will be shown on files matching this glob pattern  |
-| `codeLensFeatureSelector` | string  | `**/features/**/*.feature`            | Code Lens will be shown on files matching this glob pattern  |
+| `stepsSelector`    | string  | `**/{steps,step_definitions}/**/*.ts` | Glob pattern used to find step files in your workspace. The default supports multiple test projects in a workspace. |
+| `featuresSelector` | string  | `**/features/**/*.feature`            | Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace. |
 | `preserveEditorFocus`     | boolean | false                                 | Preserve focus on editor when running tests                  |
 
 ## Change Log

@@ -81,18 +81,18 @@ export class CtvConfig {
 	}
 
 	/**
-	 * Code Lens will be shown on files matching this pattern
+	 * Glob pattern used to find step files in your workspace. The default supports multiple test projects in a workspace.
 	 */
-	public get codeLensStepSelector(): string {
-		const glob = vscode.workspace.getConfiguration().get('cucumber-tsflow.codeLensStepSelector') || '';
+	public get stepsSelector(): string {
+		const glob = vscode.workspace.getConfiguration().get('cucumber-tsflow.stepsSelector') || '';
 		return normalizePath(glob as string);
 	}
 
 	/**
-	 * Code Lens will be shown on files matching this pattern
+	 * Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace.
 	 */
-	public get codeLensFeatureSelector(): string {
-		const glob = vscode.workspace.getConfiguration().get('cucumber-tsflow.codeLensFeatureSelector') || '';
+	public get featuresSelector(): string {
+		const glob = vscode.workspace.getConfiguration().get('cucumber-tsflow.featuresSelector') || '';
 		return normalizePath(glob as string);
 	}
 
