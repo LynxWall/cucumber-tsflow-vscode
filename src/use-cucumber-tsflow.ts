@@ -3,9 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { gte as semverGte } from 'semver';
 
-const tsFlow = path.join(ctvConfig.projectPath ?? '', 'node_modules', '@lynxwall', 'cucumber-tsflow');
-
 const isCucumberTsFlowInstalled = (): boolean => {
+	const tsFlow = path.join(ctvConfig.projectPath ?? '', 'node_modules', '@lynxwall', 'cucumber-tsflow');
 	return fs.existsSync(tsFlow);
 };
 
@@ -14,7 +13,13 @@ const useCucumberTsFlow = () => {
 
 	const checkCucumberTsFlow = (): boolean => {
 		if (isCucumberTsFlowInstalled()) {
-			const currentVersion = require(path.join(tsFlow, 'lib/version')).version;
+			const currentVersion = require(path.join(
+				ctvConfig.projectPath ?? '',
+				'node_modules',
+				'@lynxwall',
+				'cucumber-tsflow',
+				'lib/version'
+			)).version;
 			if (semverGte(currentVersion, minCucumberTsFlowVer)) {
 				return true;
 			} else {

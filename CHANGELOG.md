@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [1.0.3]
+
+### Fixed
+
+- Code Lens not working when workspace opened at root. Updated to always get current project path when checking cucumber-tsflow version.
+
 ## [1.0.2]
 
 ### Fixed
