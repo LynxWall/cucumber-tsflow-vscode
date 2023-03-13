@@ -16,7 +16,7 @@
 		"url": "https://github.com/LynxWall/cucumber-tsflow-vscode.git"
 	},
 	"engines": {
-		"vscode": "^1.72.0"
+		"vscode": "^1.76.0"
 	},
 	"categories": [
 		"Testing",
@@ -140,3 +140,4 @@
 		"vscode-test-adapter-api": "^1.9.0"
 	}
 }
+
