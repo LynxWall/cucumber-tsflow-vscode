@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",
@@ -117,26 +117,26 @@
 		"test": "npm run -S build:test && node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@lynxwall/cucumber-tsflow": "^5.1.2",
+		"@lynxwall/cucumber-tsflow": "^5.1.3",
 		"@types/glob": "^7.2.0",
 		"@types/mocha": "^9.1.1",
-		"@types/node": "^16.11.64",
-		"@types/semver": "^7.3.12",
-		"@types/vscode": "^1.72.0",
-		"@typescript-eslint/eslint-plugin": "^5.39.0",
-		"@typescript-eslint/parser": "^5.39.0",
-		"@vscode/test-electron": "^2.1.5",
-		"esbuild": "^0.14.34",
-		"eslint": "^8.25.0",
-		"glob": "^8.0.3",
-		"mocha": "^10.0.0",
-		"prettier": "^2.7.1",
+		"@types/node": "^16.18.15",
+		"@types/semver": "^7.3.13",
+		"@types/vscode": "^1.76.0",
+		"@typescript-eslint/eslint-plugin": "^5.55.0",
+		"@typescript-eslint/parser": "^5.55.0",
+		"@vscode/test-electron": "^2.3.0",
+		"esbuild": "^0.14.54",
+		"eslint": "^8.36.0",
+		"glob": "^8.1.0",
+		"mocha": "^10.2.0",
+		"prettier": "^2.8.4",
 		"rimraf": "^3.0.2",
 		"typescript": "~4.7.4"
 	},
 	"dependencies": {
-		"minimatch": "^5.1.0",
-		"semver": "^7.3.8"
+		"minimatch": "^5.1.6",
+		"semver": "^7.3.8",
+		"vscode-test-adapter-api": "^1.9.0"
 	}
 }
-

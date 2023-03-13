@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [1.0.4]
+
+### Update
+
+- VS Code and other package updates.
+
 ## [1.0.3]
 
 ### Fixed
