@@ -31,6 +31,10 @@ export default class GherkinManager {
 		}
 	}
 
+	public get parsedFeatures(): Array<ParsedFeature> {
+		return this.features;
+	}
+
 	public updateFeature = (filePath: string, fileText?: string) => {
 		const feature = fileText
 			? this.gherkinFeature.parseFeature(fileText, filePath)

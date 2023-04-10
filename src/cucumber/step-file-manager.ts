@@ -1,7 +1,7 @@
 import cucumberConfig from './cucumber-config';
 import GherkinManager, { StepInfo, IMapFeaturesResult } from '../gherkin/gherkin-manager';
 import ctvConfig from '../ctv-config';
-import { FeatureFromStepFile, ScenarioFromStepFile } from '../types';
+import { FeatureFromStepFile, ParsedFeature, ScenarioFromStepFile } from '../types';
 
 class StepFileManager {
 	private gherkin!: GherkinManager;
@@ -34,6 +34,14 @@ class StepFileManager {
 		if (this.findFeatureResults?.features) {
 			return this.findFeatureResults?.features.getPrimaryFeature();
 		}
+	};
+
+	public getParsedFeatures = async (): Promise<ParsedFeature[]> => {
+		if (!this.gherkin || ctvConfig.cucumberPath !== this.currentRootPath) {
+			await this.loadFeatures();
+			this.currentRootPath = ctvConfig.cucumberPath;
+		}
+		return this.gherkin.parsedFeatures;
 	};
 
 	/**

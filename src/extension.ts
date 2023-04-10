@@ -6,6 +6,8 @@ import { StepCodeLensProvider } from './step-code-lens-provider';
 import ctvConfig from './ctv-config';
 import cucumberRunner from './cucumber/cucumber-runner';
 import stepFileManager from './cucumber/step-file-manager';
+import { loadFakeTests, runFakeTests } from './fakeTests';
+import { TestFeatures } from './cucumber/test-features';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -50,6 +52,25 @@ export const activate = async (context: vscode.ExtensionContext) => {
 
 	context.subscriptions.push(runCucumber);
 	context.subscriptions.push(debugCucumber);
+
+	// create a test controller
+	const ctrl = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber TsFlow VS Code');
+	context.subscriptions.push(ctrl);
+
+	// load test features
+	const testFeatures = new TestFeatures();
+	// Custom handler for loading tests. The "test" argument here is undefined,
+	// but if we supported lazy-loading child test then this could be called with
+	// the test whose children VS Code wanted to load.
+	ctrl.resolveHandler = async test => {
+		ctrl.items.replace(await testFeatures.loadTests(ctrl));
+	};
+
+	// We'll create the "run" type profile here, and give it the function to call.
+	// You can also create debug and coverage profile types. The last `true` argument
+	// indicates that this should by the default "run" profile, in case there were
+	// multiple run profiles.
+	ctrl.createRunProfile('Run', vscode.TestRunProfileKind.Run, request => testFeatures.runTests(ctrl, request), true);
 
 	// log the fact that the extension is active
 	console.log('Cucumber TsFlow for VS Code is now active!');
