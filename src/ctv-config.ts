@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { sync as globSync } from 'glob';
 import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
 
 export class CtvConfig {
@@ -29,11 +30,7 @@ export class CtvConfig {
 	 * Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)
 	 */
 	public get projectPath(): string | undefined {
-		return (
-			vscode.workspace.getConfiguration().get('cucumber-tsflow.projectPath') ||
-			this.currentWorkspaceRootPath ||
-			this.currentWorkspaceFolderPath
-		);
+		return vscode.workspace.getConfiguration().get('cucumber-tsflow.projectPath') || this.currentWorkspaceRootPath;
 	}
 
 	/**
@@ -153,32 +150,8 @@ export class CtvConfig {
 	 * node_modules are found.
 	 */
 	private get currentWorkspaceRootPath(): string | undefined {
-		const editor = vscode.window.activeTextEditor;
-		if (editor) {
-			let currentFolderPath: string | undefined = path.dirname(editor.document.fileName);
-			let prevFolderPath: string = '';
-			do {
-				// Try to find where cucumber-tsflow is installed relatively to the current opened file.
-				// Do not assume that cucumber-tsflow is always installed at the root of the opened project, this is not the case
-				// such as in multi-module projects.
-				prevFolderPath = currentFolderPath;
-				const pkg = path.join(currentFolderPath, 'package.json');
-				const tsflow = path.join(currentFolderPath, 'node_modules', '@lynxwall', 'cucumber-tsflow');
-				if (fs.existsSync(pkg) && fs.existsSync(tsflow)) {
-					return currentFolderPath;
-				}
-				// this stops changing when we hit the root
-				currentFolderPath = path.join(currentFolderPath, '..');
-			} while (currentFolderPath !== prevFolderPath);
-		}
-
-		return undefined;
-	}
-
-	private get currentWorkspaceFolderPath(): string | undefined {
-		const editor = vscode.window.activeTextEditor;
-		if (editor) {
-			return vscode.workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath;
+		if (vscode.workspace.workspaceFolders) {
+			return vscode.workspace.workspaceFolders[0].uri.fsPath;
 		}
 		return undefined;
 	}
@@ -207,9 +180,37 @@ export class CtvConfig {
 					currentFolderPath = path.join(currentFolderPath, '..');
 				} while (currentFolderPath !== prevFolderPath);
 			}
+		} else if (vscode.workspace.workspaceFolders) {
+			const cucumber = this.cucumberSettingsPath;
+			const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+			return wsPath;
 		}
 
 		return undefined;
+	}
+
+	private get cucumberSettingsPath(): string | undefined {
+		let filePath: string | undefined = undefined;
+		if (this.currentWorkspaceRootPath) {
+			const cucumberFiles = globSync('**/cucumber.*', { cwd: this.currentWorkspaceRootPath });
+			cucumberFiles.map(cucumberFile => {
+				if (!(cucumberFile.indexOf('node_modules') > 0)) {
+					const settingsPath = path.join(this.currentWorkspaceRootPath!, cucumberFile);
+					fs.readFile(settingsPath, (err, data) => {
+						if (err) {
+							console.log(err);
+						}
+						if (data.includes(this.profile)) {
+							const cucumberIdx = cucumberFile.indexOf('cucumber');
+							filePath = cucumberFile.substring(0, cucumberIdx + 1);
+						}
+					});
+				}
+			});
+		}
+		console.log('cucumber settings path: ' + filePath);
+		return filePath;
 	}
 }
 
