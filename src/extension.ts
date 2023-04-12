@@ -6,7 +6,6 @@ import { StepCodeLensProvider } from './step-code-lens-provider';
 import ctvConfig from './ctv-config';
 import cucumberRunner from './cucumber/cucumber-runner';
 import stepFileManager from './cucumber/step-file-manager';
-import { loadFakeTests, runFakeTests } from './fakeTests';
 import { TestFeatures } from './cucumber/test-features';
 
 // this method is called when your extension is activated

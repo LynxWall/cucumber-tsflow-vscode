@@ -5,6 +5,7 @@ import { sync as globSync } from 'glob';
 import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
 
 export class CtvConfig {
+	private cucumberSettingsPath?: string;
 	/**
 	 * Cucumber config path (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')
 	 */
@@ -132,7 +133,7 @@ export class CtvConfig {
 	 */
 	public get cucumberBinPath(): string {
 		// default
-		const fallbackRelativeTsFlowBinPath = 'node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow';
+		const defaultPath = 'node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow';
 		const relativeTsFlowBin = [
 			'node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow',
 			'node_modules/.bin/cucumber-tsflow'
@@ -140,8 +141,7 @@ export class CtvConfig {
 		const cwd = this.projectPath ?? '';
 
 		let tsflowPath = relativeTsFlowBin.find(relativeBin => isNodeExecuteAbleFile(path.join(cwd, relativeBin)));
-		tsflowPath = tsflowPath || fallbackRelativeTsFlowBinPath;
-
+		tsflowPath = tsflowPath || defaultPath;
 		return normalizePath(path.join(cwd, tsflowPath));
 	}
 
@@ -158,59 +158,56 @@ export class CtvConfig {
 
 	/**
 	 * Gets the path where cucumber.js is found relative to the current
-	 * working file. Supports mono repo projects
+	 * working file or root if no file open. Supports mono repo projects
 	 */
 	private get currentCucumberRootPath(): string | undefined {
-		const configFiles = ['cucumber.json', 'cucumber.js', 'cucumber.cjs', 'cucumber.mjs'];
+		return this.cucumberSettingsPathFromFile || this.cucumberSettingsPathFromRoot;
+	}
+
+	private get cucumberSettingsPathFromRoot(): string | undefined {
+		if (this.cucumberSettingsPath === undefined && this.currentWorkspaceRootPath) {
+			const cucumberFiles = globSync('**/cucumber.*', { cwd: this.currentWorkspaceRootPath });
+			for (const cucumberFile of cucumberFiles) {
+				if (cucumberFile.indexOf('node_modules') < 0) {
+					const settingsPath = path.join(this.currentWorkspaceRootPath!, cucumberFile);
+					const data = fs.readFileSync(settingsPath);
+					if (data.includes(this.profile)) {
+						const cucumberIdx = cucumberFile.lastIndexOf('cucumber');
+						const cucumberPath = cucumberIdx > 0 ? cucumberFile.substring(0, cucumberIdx - 1) : '';
+						return normalizePath(path.join(this.currentWorkspaceRootPath!, cucumberPath));
+					}
+				}
+			}
+		}
+		return undefined;
+	}
+
+	private get cucumberSettingsPathFromFile(): string | undefined {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
 			let currentFolderPath: string | undefined = path.dirname(editor.document.fileName);
 			if (currentFolderPath) {
 				let prevFolderPath: string = '';
 				do {
-					// Try to find where cucumber configuration is located relative to the current opened file.
+					const cucumberFiles = globSync('./cucumber.*', { cwd: currentFolderPath });
 					prevFolderPath = currentFolderPath;
-					for (let idx = 0; idx < 4; idx++) {
-						const pkg = path.join(currentFolderPath as string, configFiles[idx]);
-						if (fs.existsSync(pkg)) {
-							return currentFolderPath;
+					if (cucumberFiles.length > 0) {
+						for (const cucumberFile of cucumberFiles) {
+							if (cucumberFile.indexOf('node_modules') < 0) {
+								const settingsPath = path.join(currentFolderPath, cucumberFile);
+								const data = fs.readFileSync(settingsPath);
+								if (data.includes(this.profile)) {
+									return normalizePath(currentFolderPath);
+								}
+							}
 						}
 					}
 					// this stops changing when we hit the root
 					currentFolderPath = path.join(currentFolderPath, '..');
 				} while (currentFolderPath !== prevFolderPath);
 			}
-		} else if (vscode.workspace.workspaceFolders) {
-			const cucumber = this.cucumberSettingsPath;
-			const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-
-			return wsPath;
 		}
-
 		return undefined;
-	}
-
-	private get cucumberSettingsPath(): string | undefined {
-		let filePath: string | undefined = undefined;
-		if (this.currentWorkspaceRootPath) {
-			const cucumberFiles = globSync('**/cucumber.*', { cwd: this.currentWorkspaceRootPath });
-			cucumberFiles.map(cucumberFile => {
-				if (!(cucumberFile.indexOf('node_modules') > 0)) {
-					const settingsPath = path.join(this.currentWorkspaceRootPath!, cucumberFile);
-					fs.readFile(settingsPath, (err, data) => {
-						if (err) {
-							console.log(err);
-						}
-						if (data.includes(this.profile)) {
-							const cucumberIdx = cucumberFile.indexOf('cucumber');
-							filePath = cucumberFile.substring(0, cucumberIdx + 1);
-						}
-					});
-				}
-			});
-		}
-		console.log('cucumber settings path: ' + filePath);
-		return filePath;
 	}
 }
 

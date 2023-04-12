@@ -19,10 +19,9 @@ export class CucumberRunner {
 		const runCommand = ctvConfig.runCommand;
 
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			return;
+		if (editor) {
+			await editor.document.save();
 		}
-		await editor.document.save();
 
 		// if we're running on windows and the path starts
 		// with a leading slash (/c:/) we need to strip
@@ -49,10 +48,9 @@ export class CucumberRunner {
 	 */
 	public debugCucumber = async (filePath: string, lineNumber?: number) => {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			return;
+		if (editor) {
+			await editor.document.save();
 		}
-		await editor.document.save();
 
 		// if we're running on windows and the path starts
 		// with a leading slash (/c:/) we need to strip
