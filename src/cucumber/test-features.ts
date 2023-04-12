@@ -48,6 +48,7 @@ export class TestFeatures {
 		} else {
 			await cucumberRunner.runCucumber(vnode.uri!.path);
 		}
+		const results = scenario?.scenarioContext;
 	};
 
 	toKebabCase = (str: string): string => {
@@ -62,4 +63,3 @@ export class TestFeatures {
 		return result;
 	};
 }
-

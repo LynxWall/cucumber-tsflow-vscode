@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import ctvConfig from '../ctv-config';
 import { isWindows, pushMany, quote } from '../utils';
+import { spawn, exec } from 'child_process';
 
 export class CucumberRunner {
 	private terminal!: vscode.Terminal | null;
@@ -38,6 +39,8 @@ export class CucumberRunner {
 
 		await this.goToCwd();
 		await this.runTerminalCommand(command);
+
+		this.runNodeCommand(command);
 	};
 
 	/**
@@ -113,6 +116,30 @@ export class CucumberRunner {
 		this.terminal.show(ctvConfig.preserveEditorFocus);
 		await vscode.commands.executeCommand('workbench.action.terminal.clear');
 		this.terminal.sendText(command);
+	}
+
+	private runNodeCommand(command: string) {
+		const cdCmd = `cd ${quote(ctvConfig.cucumberPath as string)}`;
+
+		const ls = spawn(cdCmd && 'dir', {
+			shell: true
+		});
+
+		ls.stdout.on('data', data => {
+			console.log(`stdout: ${data}`);
+		});
+
+		ls.stderr.on('data', data => {
+			console.log(`stderr: ${data}`);
+		});
+
+		ls.on('error', error => {
+			console.log(`error: ${error.message}`);
+		});
+
+		ls.on('close', code => {
+			console.log(`child process exited with code ${code}`);
+		});
 	}
 
 	/**
