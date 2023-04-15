@@ -88,6 +88,11 @@
 						"default": "**/features/**/*.feature",
 						"description": "Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace."
 					},
+					"cucumber-tsflow.maxFolderDepth": {
+						"type": "number",
+						"default": 10,
+						"description": "Max folder depth for your workspace. Used to search parent folders for closest matching Cucumber settings file for a step file"
+					},
 					"cucumber-tsflow.preserveEditorFocus": {
 						"type": "boolean",
 						"default": false,

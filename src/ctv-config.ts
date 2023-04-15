@@ -3,10 +3,13 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { sync as globSync } from 'glob';
 import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
+import minimatch from 'minimatch';
 
 export default class CtvConfig {
 	private workspaceRootPath?: string;
-	private cucumberSettingsPath?: string;
+	private cucumberSettingsFromRoot?: string;
+	private cucumberSettingsFromFile?: string;
+	private currentStepFilePath: string = '';
 	private outputChannel: vscode.OutputChannel;
 
 	constructor() {
@@ -106,6 +109,14 @@ export default class CtvConfig {
 	}
 
 	/**
+	 * Max folder depth for your workspace.
+	 * Used to search parent folders for closest matching Cucumber settings file for a step file
+	 */
+	public get maxFolderDepth(): number {
+		return vscode.workspace.getConfiguration().get('cucumber-tsflow.maxFolderDepth') ?? 10;
+	}
+
+	/**
 	 * Preserve focus on editor when running tests
 	 */
 	public get preserveEditorFocus(): boolean {
@@ -188,7 +199,7 @@ export default class CtvConfig {
 
 	private get cucumberSettingsPathFromRoot(): string | undefined {
 		if (this.currentWorkspaceRootPath) {
-			if (!this.cucumberSettingsPath) {
+			if (!this.cucumberSettingsFromRoot) {
 				const cucumberFiles = globSync('**/cucumber.*', { cwd: this.currentWorkspaceRootPath });
 				for (const cucumberFile of cucumberFiles) {
 					if (cucumberFile.indexOf('node_modules') < 0) {
@@ -197,12 +208,12 @@ export default class CtvConfig {
 						if (data.includes(this.profile)) {
 							const cucumberIdx = cucumberFile.lastIndexOf('cucumber');
 							const cucumberPath = cucumberIdx > 0 ? cucumberFile.substring(0, cucumberIdx - 1) : '';
-							this.cucumberSettingsPath = normalizePath(path.join(this.currentWorkspaceRootPath!, cucumberPath));
+							this.cucumberSettingsFromRoot = normalizePath(path.join(this.currentWorkspaceRootPath!, cucumberPath));
 						}
 					}
 				}
 			}
-			return this.cucumberSettingsPath;
+			return this.cucumberSettingsFromRoot;
 		}
 		return undefined;
 	}
@@ -211,25 +222,36 @@ export default class CtvConfig {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
 			let currentFolderPath: string | undefined = path.dirname(editor.document.fileName);
-			if (currentFolderPath && currentFolderPath !== '.') {
-				let prevFolderPath: string = '';
-				do {
+			if (
+				currentFolderPath &&
+				currentFolderPath !== this.currentStepFilePath &&
+				minimatch(`${currentFolderPath}/test.ts`, this.stepsSelector)
+			) {
+				const stepFilepath = currentFolderPath;
+				const maxDepth = this.maxFolderDepth;
+				for (let x = 0; x < maxDepth; x++) {
 					const cucumberFiles = globSync('./cucumber.*', { cwd: currentFolderPath });
-					prevFolderPath = currentFolderPath;
 					if (cucumberFiles.length > 0) {
 						for (const cucumberFile of cucumberFiles) {
 							if (cucumberFile.indexOf('node_modules') < 0) {
 								const settingsPath = path.join(currentFolderPath, cucumberFile);
 								const data = fs.readFileSync(settingsPath);
 								if (data.includes(this.profile)) {
-									return normalizePath(currentFolderPath);
+									this.currentStepFilePath = stepFilepath;
+									this.cucumberSettingsFromFile = normalizePath(currentFolderPath);
+									return this.cucumberSettingsFromRoot;
 								}
 							}
 						}
 					}
-					// this stops changing when we hit the root
 					currentFolderPath = path.join(currentFolderPath, '..');
-				} while (currentFolderPath !== prevFolderPath);
+				}
+			} else if (
+				currentFolderPath &&
+				currentFolderPath === this.currentStepFilePath &&
+				minimatch(`${currentFolderPath}/test.ts`, this.stepsSelector)
+			) {
+				return this.cucumberSettingsFromFile;
 			}
 		}
 		return undefined;
