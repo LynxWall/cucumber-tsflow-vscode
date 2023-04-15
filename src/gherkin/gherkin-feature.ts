@@ -5,10 +5,17 @@ import * as messages from '@cucumber/messages';
 import { getJestCucumberConfiguration, Options } from './configuration';
 import { AstBuilder, GherkinClassicTokenMatcher, Parser, Dialect, dialects } from '@cucumber/gherkin/dist/src';
 import { ParsedFeature, ParsedScenario, ParsedStep, ParsedScenarioOutline } from '../types';
-import ctvConfig from '../ctv-config';
+import useCtvConfig from '../use-ctv-config';
+import CtvConfig from '../ctv-config';
 
 export default class GherkinFeature {
-	private cwd = ctvConfig.cucumberPath as string;
+	private ctvConfig: CtvConfig;
+	private cwd: string;
+
+	constructor() {
+		this.ctvConfig = useCtvConfig().getConfig();
+		this.cwd = this.ctvConfig.cucumberPath as string;
+	}
 
 	public loadFeature = (featureFilePath: string, options?: Options) => {
 		try {

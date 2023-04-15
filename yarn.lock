@@ -676,6 +676,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/verror@npm:~1.10.6":
+  version: 1.10.6
+  resolution: "@types/verror@npm:1.10.6"
+  checksum: 650620b851d42cda6e5f6fa84f4d89c259b3f85f7443ee1c85f4f9a9e1ce7b472640c833ef483d0803f8100d6228a82fb9776f53d5539cfe1d8f06adfb04e10c
+  languageName: node
+  linkType: hard
+
 "@types/vscode@npm:^1.77.0":
   version: 1.77.0
   resolution: "@types/vscode@npm:1.77.0"
@@ -1342,6 +1349,7 @@ __metadata:
     "@types/mocha": ^10.0.1
     "@types/node": ^18.15.11
     "@types/semver": ^7.3.13
+    "@types/verror": ~1.10.6
     "@types/vscode": ^1.77.0
     "@typescript-eslint/eslint-plugin": ^5.57.1
     "@typescript-eslint/parser": ^5.57.1
@@ -1355,7 +1363,7 @@ __metadata:
     rimraf: ^4.4.1
     semver: ^7.3.8
     typescript: ~4.7.4
-    vscode-test-adapter-api: ^1.9.0
+    verror: ~1.10.1
   languageName: unknown
   linkType: soft
 
@@ -4090,13 +4098,6 @@ __metadata:
     core-util-is: 1.0.2
     extsprintf: ^1.2.0
   checksum: 690a8d6ad5a4001672290e9719e3107c86269bc45fe19f844758eecf502e59f8aa9631b19b839f6d3dea562334884d22d1eb95ae7c863032075a9212c889e116
-  languageName: node
-  linkType: hard
-
-"vscode-test-adapter-api@npm:^1.9.0":
-  version: 1.9.0
-  resolution: "vscode-test-adapter-api@npm:1.9.0"
-  checksum: fbfbe9ced4fdc3e300e7f32650198abf707777df32c28c3fee2b96ea98e9d7699afc74044e2f0e307d1299c4057763a34d737e888012c2c7d2536e5c3ca1d3bf
   languageName: node
   linkType: hard
 

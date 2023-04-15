@@ -1,13 +1,21 @@
-import cucumberConfig from './cucumber-config';
+import CucumberConfig from './cucumber-config';
 import GherkinManager, { StepInfo, IMapFeaturesResult } from '../gherkin/gherkin-manager';
-import ctvConfig from '../ctv-config';
+import useCtvConfig from '../use-ctv-config';
 import { FeatureFromStepFile, ParsedFeature, ScenarioFromStepFile } from '../types';
+import CtvConfig from '../ctv-config';
 
-class StepFileManager {
+export default class StepFileManager {
 	private gherkin!: GherkinManager;
 	private currentRootPath?: string;
 	private currentFileText: string = '';
 	private findFeatureResults?: IMapFeaturesResult;
+	private ctvConfig: CtvConfig;
+	private cucumberConfig: CucumberConfig;
+
+	constructor() {
+		this.ctvConfig = useCtvConfig().getConfig();
+		this.cucumberConfig = new CucumberConfig();
+	}
 
 	/**
 	 * Get all of the steps from the step file text passed in.
@@ -15,9 +23,9 @@ class StepFileManager {
 	 * @returns
 	 */
 	public getSteps = async (fileText: string): Promise<StepInfo[]> => {
-		if (!this.gherkin || ctvConfig.cucumberPath !== this.currentRootPath) {
+		if (!this.gherkin || this.ctvConfig.cucumberPath !== this.currentRootPath) {
 			await this.loadFeatures();
-			this.currentRootPath = ctvConfig.cucumberPath;
+			this.currentRootPath = this.ctvConfig.cucumberPath;
 		}
 
 		if (fileText !== this.currentFileText || !this.findFeatureResults) {
@@ -37,9 +45,9 @@ class StepFileManager {
 	};
 
 	public getParsedFeatures = async (): Promise<ParsedFeature[]> => {
-		if (!this.gherkin || ctvConfig.cucumberPath !== this.currentRootPath) {
+		if (!this.gherkin || this.ctvConfig.cucumberPath !== this.currentRootPath) {
 			await this.loadFeatures();
-			this.currentRootPath = ctvConfig.cucumberPath;
+			this.currentRootPath = this.ctvConfig.cucumberPath;
 		}
 		return this.gherkin.parsedFeatures;
 	};
@@ -69,16 +77,13 @@ class StepFileManager {
 	public updateFeature = async (filePath: string, fileText?: string) => {
 		if (!this.gherkin) {
 			await this.loadFeatures();
-			this.currentRootPath = ctvConfig.cucumberPath;
+			this.currentRootPath = this.ctvConfig.cucumberPath;
 		}
 		this.gherkin.updateFeature(filePath, fileText);
 	};
 
 	private loadFeatures = async (): Promise<void> => {
-		const config = await cucumberConfig.getConfig();
+		const config = await this.cucumberConfig.getConfig();
 		this.gherkin = new GherkinManager(config.paths);
 	};
 }
-
-const stepFileManager = new StepFileManager();
-export default stepFileManager;

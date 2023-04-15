@@ -1,13 +1,42 @@
 import * as vscode from 'vscode';
-import ctvConfig from '../ctv-config';
-import { isWindows, pushMany, quote } from '../utils';
-import { spawn, exec } from 'child_process';
+import useCtvConfig from '../use-ctv-config';
+import { isWindows, pushMany } from '../utils';
+import { spawn } from 'child_process';
+import CtvConfig from '../ctv-config';
+
+const executeNodeCommand = (
+	command: string,
+	args: string[],
+	cwd: string
+): Promise<{ data: string; code: number | null }> => {
+	const cmdPromise = new Promise<{ data: string; code: number | null }>((resolve, reject) => {
+		let buffer = '';
+		const nodeShell = spawn(command, args, {
+			cwd: cwd,
+			shell: true,
+			stdio: ['pipe', 'pipe', 'ignore']
+		});
+
+		nodeShell.stdout?.on('data', (data: any) => {
+			buffer += `${data}`;
+		});
+		nodeShell.on('close', code => {
+			resolve({ data: buffer, code: code });
+		});
+
+		nodeShell.on('error', data => {
+			console.log(`child process closed with error ${data}`);
+			reject(data);
+		});
+	});
+	return cmdPromise;
+};
 
 export class CucumberRunner {
-	private terminal!: vscode.Terminal | null;
+	private ctvConfig: CtvConfig;
 
 	constructor() {
-		this.setup();
+		this.ctvConfig = useCtvConfig().getConfig();
 	}
 
 	/**
@@ -17,8 +46,6 @@ export class CucumberRunner {
 	 * @returns
 	 */
 	public runCucumber = async (filePath: string, lineNumber?: number) => {
-		const runCommand = ctvConfig.runCommand;
-
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
 			await editor.document.save();
@@ -30,17 +57,13 @@ export class CucumberRunner {
 		if (isWindows() && filePath.startsWith('/')) {
 			filePath = filePath.substring(1);
 		}
-		const args = ctvConfig.runtimeArgs();
+		const args = this.ctvConfig.runtimeArgs();
 		let scenario = `${filePath}`;
 		if (lineNumber) {
 			scenario = `${filePath}:${lineNumber}`;
 		}
-		const command = `${runCommand} ${args.join(' ')} ${quote(scenario)}`;
-
-		await this.goToCwd();
-		await this.runTerminalCommand(command);
-
-		this.runNodeCommand(command);
+		args.push(scenario);
+		this.runNodeCommand(args);
 	};
 
 	/**
@@ -69,6 +92,8 @@ export class CucumberRunner {
 		const debugConfig = this.getDebugConfig(scenario);
 
 		vscode.debug.startDebugging(undefined, debugConfig);
+
+		vscode.debug.onDidTerminateDebugSession(e => console.log('Debug done: ' + e.name));
 	};
 
 	/**
@@ -81,75 +106,35 @@ export class CucumberRunner {
 			console: 'integratedTerminal',
 			internalConsoleOptions: 'neverOpen',
 			name: 'Debug Cucumber Tests',
-			program: ctvConfig.cucumberBinPath,
+			program: this.ctvConfig.cucumberBinPath,
 			request: 'launch',
 			type: 'node',
-			cwd: ctvConfig.cucumberPath,
-			...ctvConfig.debugOptions
+			cwd: this.ctvConfig.cucumberPath,
+			...this.ctvConfig.debugOptions
 		};
 
 		config.args = config.args ? config.args.slice() : [];
 
-		const standardArgs = ctvConfig.runtimeArgs();
+		const standardArgs = this.ctvConfig.runtimeArgs();
 		pushMany(config.args, standardArgs);
 		config.args.push(scenario.trim());
 
 		return config;
 	};
 
-	/**
-	 * Goto working directory, used to run cucumber scenarios
-	 */
-	private async goToCwd() {
-		const command = `cd ${quote(ctvConfig.cucumberPath as string)}`;
-		await this.runTerminalCommand(command);
-	}
+	private async runNodeCommand(args: string[]) {
+		this.ctvConfig.cucumberOutput.show(this.ctvConfig.preserveEditorFocus);
 
-	/**
-	 * Execute commands in a terminal
-	 * @param command command to execute
-	 */
-	private async runTerminalCommand(command: string) {
-		if (!this.terminal) {
-			this.terminal = vscode.window.createTerminal('cucumber-tsflow');
+		const runCommand = this.ctvConfig.runCommand;
+		const cucumberPath = this.ctvConfig.cucumberPath;
+
+		if (cucumberPath) {
+			const resp = await executeNodeCommand(runCommand, args, cucumberPath);
+			this.ctvConfig.cucumberOutput.append(resp.data);
+			this.ctvConfig.cucumberOutput.appendLine('');
+			this.ctvConfig.cucumberOutput.appendLine(`${resp.code}`);
 		}
-		this.terminal.show(ctvConfig.preserveEditorFocus);
-		await vscode.commands.executeCommand('workbench.action.terminal.clear');
-		this.terminal.sendText(command);
 	}
-
-	private runNodeCommand(command: string) {
-		const cdCmd = `cd ${quote(ctvConfig.cucumberPath as string)}`;
-
-		const ls = spawn(cdCmd && 'dir', {
-			shell: true
-		});
-
-		ls.stdout.on('data', data => {
-			console.log(`stdout: ${data}`);
-		});
-
-		ls.stderr.on('data', data => {
-			console.log(`stderr: ${data}`);
-		});
-
-		ls.on('error', error => {
-			console.log(`error: ${error.message}`);
-		});
-
-		ls.on('close', code => {
-			console.log(`child process exited with code ${code}`);
-		});
-	}
-
-	/**
-	 * Handler to clear the terminal when it closes
-	 */
-	private setup = () => {
-		vscode.window.onDidCloseTerminal(() => {
-			this.terminal = null;
-		});
-	};
 }
 
 const cucumberRunner = new CucumberRunner();

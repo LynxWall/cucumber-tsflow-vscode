@@ -31,8 +31,7 @@
 		"multi-root ready"
 	],
 	"activationEvents": [
-		"onLanguage:typescript",
-		"workspaceContains:**/cucumber.*"
+		"workspaceContains:**/*.feature"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -43,26 +42,22 @@
 					"cucumber-tsflow.configFile": {
 						"type": "string",
 						"default": "",
-						"description": "Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')",
-						"scope": "window"
+						"description": "Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')"
 					},
 					"cucumber-tsflow.profile": {
 						"type": "string",
 						"default": "default",
-						"description": "Cucumber profile to use when running or debugging tests.",
-						"scope": "window"
+						"description": "Cucumber profile to use when running or debugging tests."
 					},
 					"cucumber-tsflow.cucumberPath": {
 						"type": "string",
 						"default": "",
-						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)",
-						"scope": "window"
+						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)"
 					},
 					"cucumber-tsflow.projectPath": {
 						"type": "string",
 						"default": "",
-						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)",
-						"scope": "window"
+						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)"
 					},
 					"cucumber-tsflow.runOptions": {
 						"type": "array",
@@ -71,20 +66,17 @@
 							"type": "string",
 							"description": "CLI Option e.g. ['--backtrace', 'true']"
 						},
-						"description": "Add CLI Options to the Cucumber-tsflow Command e.g. https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options",
-						"scope": "window"
+						"description": "Add CLI Options to the Cucumber-tsflow Command e.g. https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options"
 					},
 					"cucumber-tsflow.debugOptions": {
 						"type": "object",
 						"default": {},
-						"description": "Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] })",
-						"scope": "window"
+						"description": "Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] })"
 					},
 					"cucumber-tsflow.disableCodeLens": {
 						"type": "boolean",
 						"default": false,
-						"description": "Disable Code Lens feature",
-						"scope": "window"
+						"description": "Disable Code Lens feature"
 					},
 					"cucumber-tsflow.stepsSelector": {
 						"type": "string",
@@ -99,8 +91,7 @@
 					"cucumber-tsflow.preserveEditorFocus": {
 						"type": "boolean",
 						"default": false,
-						"description": "Preserve focus on editor when running tests",
-						"scope": "window"
+						"description": "Preserve focus on editor when running tests"
 					}
 				}
 			}
@@ -122,6 +113,7 @@
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.15.11",
 		"@types/semver": "^7.3.13",
+		"@types/verror": "~1.10.6",
 		"@types/vscode": "^1.77.0",
 		"@typescript-eslint/eslint-plugin": "^5.57.1",
 		"@typescript-eslint/parser": "^5.57.1",
@@ -137,6 +129,6 @@
 	"dependencies": {
 		"minimatch": "^8.0.3",
 		"semver": "^7.3.8",
-		"vscode-test-adapter-api": "^1.9.0"
+		"verror": "~1.10.1"
 	}
 }

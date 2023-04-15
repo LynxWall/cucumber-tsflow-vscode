@@ -1,15 +1,20 @@
 import { TestItem } from 'vscode';
 import cucumberRunner from './cucumber-runner';
-import stepFileManager from './step-file-manager';
+import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
 import { ParsedScenario } from '../types';
 
-export class TestFeatures {
+export default class TestFeatures {
 	scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
 	featureTestItems?: Array<TestItem>;
+	stepFileManager: StepFileManager;
+
+	constructor(stepFileManager: StepFileManager) {
+		this.stepFileManager = stepFileManager;
+	}
 
 	public loadTests = async (controller: vscode.TestController): Promise<TestItem[]> => {
-		const features = await stepFileManager.getParsedFeatures();
+		const features = await this.stepFileManager.getParsedFeatures();
 		this.featureTestItems = new Array<TestItem>();
 		this.scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
 
@@ -48,7 +53,6 @@ export class TestFeatures {
 		} else {
 			await cucumberRunner.runCucumber(vnode.uri!.path);
 		}
-		const results = scenario?.scenarioContext;
 	};
 
 	toKebabCase = (str: string): string => {

@@ -1,17 +1,23 @@
 import ArgvParser, { ITsflowConfiguration } from '@lynxwall/cucumber-tsflow/lib/cli/argv-parser';
 import { loadConfiguration } from '@lynxwall/cucumber-tsflow/lib/cli/load-configuration';
-import ctvConfig from '../ctv-config';
+import CtvConfig from '../ctv-config';
+import useCtvConfig from '../use-ctv-config';
 
-class CucumberConfig {
+export default class CucumberConfig {
 	private tsFlowConfig?: ITsflowConfiguration;
 	private currRoot: string = '';
+	private ctvConfig: CtvConfig;
+
+	constructor() {
+		this.ctvConfig = useCtvConfig().getConfig();
+	}
 
 	public get currentRoot(): string {
 		return this.currRoot;
 	}
 
 	public getConfig = async (): Promise<ITsflowConfiguration> => {
-		if (!this.tsFlowConfig || this.currRoot !== ctvConfig.cucumberPath) {
+		if (!this.tsFlowConfig || this.currRoot !== this.ctvConfig.cucumberPath) {
 			await this.loadCucumberConfig();
 		}
 		return this.tsFlowConfig as ITsflowConfiguration;
@@ -23,7 +29,7 @@ class CucumberConfig {
 	};
 
 	private loadCucumberConfig = async () => {
-		this.currRoot = ctvConfig.cucumberPath as string;
+		this.currRoot = this.ctvConfig.cucumberPath as string;
 		const environment = {
 			cwd: this.currRoot,
 			stdout: process.stdout,
@@ -32,10 +38,10 @@ class CucumberConfig {
 			debug: false
 		};
 
-		const args = ['node', 'cucumber-tsflow', '-p', ctvConfig.profile];
-		if (ctvConfig.configFile) {
+		const args = ['node', 'cucumber-tsflow', '-p', this.ctvConfig.profile];
+		if (this.ctvConfig.configFile && this.ctvConfig.configFile !== '') {
 			args.push('-c');
-			args.push(ctvConfig.configFile);
+			args.push(this.ctvConfig.configFile);
 		}
 
 		// initialize options for the profile passed in
@@ -52,7 +58,3 @@ class CucumberConfig {
 		this.tsFlowConfig = configuration;
 	};
 }
-// create a singleton instance
-const cucumberConfig = new CucumberConfig();
-
-export default cucumberConfig;
