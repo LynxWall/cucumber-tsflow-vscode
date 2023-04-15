@@ -150,6 +150,12 @@ export default class CtvConfig {
 		return args;
 	};
 
+	/**
+	 * helper used to get a valid string setting from config.
+	 * Returns undefined if the setting is not defined or has
+	 * the default empty string.
+	 * @param name
+	 */
 	private getStringSetting(name: string): string | undefined {
 		const setting = vscode.workspace.getConfiguration().get<string>(name);
 		if (setting && setting !== '') {
@@ -197,6 +203,10 @@ export default class CtvConfig {
 		return this.cucumberSettingsPathFromRoot;
 	}
 
+	/**
+	 * Helper used find the first settings file, starting from workspace root, that contains the
+	 * Profile specified in 'cucumber-tsflow.profile', which equals "default" by default.
+	 */
 	private get cucumberSettingsPathFromRoot(): string | undefined {
 		if (this.currentWorkspaceRootPath) {
 			if (!this.cucumberSettingsFromRoot) {
@@ -218,6 +228,17 @@ export default class CtvConfig {
 		return undefined;
 	}
 
+	/**
+	 * Helper used to get the closest matching cumber settings file that contains the
+	 * Profile specified in 'cucumber-tsflow.profile', which equals "default" by default.
+	 * This will check to see if you have a step file open by checking against the
+	 * 'cucumber-tsflow.stepsSelector' glob pattern.
+	 *
+	 * If a step file is open this will search up the file hirerachy to find a closest
+	 * settings file. This will also return the previous match if checking the same folder.
+	 *
+	 * If a step file is not open this will return undefined.
+	 */
 	private get cucumberSettingsPathFromFile(): string | undefined {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
@@ -239,7 +260,7 @@ export default class CtvConfig {
 								if (data.includes(this.profile)) {
 									this.currentStepFilePath = stepFilepath;
 									this.cucumberSettingsFromFile = normalizePath(currentFolderPath);
-									return this.cucumberSettingsFromRoot;
+									return this.cucumberSettingsFromFile;
 								}
 							}
 						}

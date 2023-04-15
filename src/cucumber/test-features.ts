@@ -47,6 +47,11 @@ export default class TestFeatures {
 	};
 
 	runTest = async (vnode: vscode.TestItem, request: vscode.TestRunRequest, run: vscode.TestRun) => {
+		// Users can hide or filter out tests from their run. If the request says
+		// they've done that for this node, then don't run it.
+		if (request.exclude?.includes(vnode)) {
+			return;
+		}
 		const scenario = this.scenarioData.get(vnode);
 		if (scenario) {
 			await cucumberRunner.runCucumber(vnode.uri!.path, scenario.lineNumber);
