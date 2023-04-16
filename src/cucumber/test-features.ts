@@ -60,19 +60,28 @@ export default class TestFeatures {
 	};
 
 	testRunner = async (vnode: vscode.TestItem, run: vscode.TestRun) => {
-		run.started(vnode);
 		if (vnode.children && vnode.children.size > 0) {
-			vnode.children.forEach(item => {
-				this.testRunner(item, run);
-			});
+			const children = this.getChildNodes(vnode.children);
+			for (const childNode of children) {
+				await this.testRunner(childNode, run);
+			}
 		} else {
 			const scenario = this.scenarioData.get(vnode);
 			if (scenario) {
+				run.started(vnode);
 				await cucumberRunner.runCucumber(vnode.uri!.path, scenario.lineNumber, (status: CallbackStatus) => {
 					this.setRunStatus(status, vnode, run);
 				});
 			}
 		}
+	};
+
+	getChildNodes = (collection: vscode.TestItemCollection): Array<TestItem> => {
+		const items = new Array<TestItem>();
+		collection.forEach(item => {
+			items.push(item);
+		});
+		return items;
 	};
 
 	setRunStatus = (status: CallbackStatus, vnode: vscode.TestItem, run: vscode.TestRun) => {
