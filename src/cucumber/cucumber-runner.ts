@@ -86,8 +86,6 @@ export class CucumberRunner {
 				}
 			}
 		}
-
-		this.runNodeCommand(args);
 	};
 
 	/**
@@ -145,20 +143,6 @@ export class CucumberRunner {
 
 		return config;
 	};
-
-	private async runNodeCommand(args: string[]) {
-		this.ctvConfig.cucumberOutput.show(this.ctvConfig.preserveEditorFocus);
-
-		const runCommand = this.ctvConfig.runCommand;
-		const cucumberPath = this.ctvConfig.cucumberPath;
-
-		if (cucumberPath) {
-			const resp = await executeNodeCommand(runCommand, args, cucumberPath);
-			this.ctvConfig.cucumberOutput.append(resp.data);
-			this.ctvConfig.cucumberOutput.appendLine('');
-			this.ctvConfig.cucumberOutput.appendLine(`${resp.code}`);
-		}
-	}
 }
 
 const cucumberRunner = new CucumberRunner();
