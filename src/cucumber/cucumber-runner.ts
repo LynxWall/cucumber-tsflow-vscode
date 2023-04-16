@@ -3,6 +3,7 @@ import useCtvConfig from '../use-ctv-config';
 import { isWindows, pushMany } from '../utils';
 import { spawn } from 'child_process';
 import CtvConfig from '../ctv-config';
+import { TestCallback } from './test-features';
 
 const executeNodeCommand = (
 	command: string,
@@ -45,7 +46,7 @@ export class CucumberRunner {
 	 * @param lineNumber Line number of the scenario in the feature file
 	 * @returns
 	 */
-	public runCucumber = async (filePath: string, lineNumber?: number) => {
+	public runCucumber = async (filePath: string, lineNumber?: number, callback?: TestCallback) => {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
 			await editor.document.save();
@@ -63,6 +64,29 @@ export class CucumberRunner {
 			scenario = `${filePath}:${lineNumber}`;
 		}
 		args.push(scenario);
+
+		this.ctvConfig.cucumberOutput.show(this.ctvConfig.preserveEditorFocus);
+
+		const runCommand = this.ctvConfig.runCommand;
+		const cucumberPath = this.ctvConfig.cucumberPath;
+
+		if (cucumberPath) {
+			const resp = await executeNodeCommand(runCommand, args, cucumberPath);
+			this.ctvConfig.cucumberOutput.append(resp.data);
+			if (callback) {
+				switch (resp.code) {
+					case 0:
+						callback('passed');
+						break;
+					case 1:
+						callback('pending');
+						break;
+					case 2:
+						callback('failed');
+				}
+			}
+		}
+
 		this.runNodeCommand(args);
 	};
 

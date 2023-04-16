@@ -4,6 +4,9 @@ import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
 import { ParsedScenario } from '../types';
 
+type CallbackStatus = 'start' | 'end' | 'passed' | 'pending' | 'failed';
+type TestCallback = (status: CallbackStatus) => void;
+
 export default class TestFeatures {
 	scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
 	featureTestItems?: Array<TestItem>;
@@ -52,11 +55,31 @@ export default class TestFeatures {
 		if (request.exclude?.includes(vnode)) {
 			return;
 		}
+		run.started(vnode);
 		const scenario = this.scenarioData.get(vnode);
 		if (scenario) {
-			await cucumberRunner.runCucumber(vnode.uri!.path, scenario.lineNumber);
+			await cucumberRunner.runCucumber(vnode.uri!.path, scenario.lineNumber, (status: CallbackStatus) => {
+				this.setRunStatus(status, vnode, run);
+			});
 		} else {
-			await cucumberRunner.runCucumber(vnode.uri!.path);
+			await cucumberRunner.runCucumber(vnode.uri!.path, undefined, (status: CallbackStatus) => {
+				this.setRunStatus(status, vnode, run);
+			});
+		}
+		run.end();
+	};
+
+	setRunStatus = (status: CallbackStatus, vnode: vscode.TestItem, run: vscode.TestRun) => {
+		switch (status) {
+			case 'passed':
+				run.passed(vnode);
+				break;
+			case 'pending':
+				run.skipped(vnode);
+				break;
+			case 'failed':
+				run.failed(vnode, new vscode.TestMessage('Fail'));
+				break;
 		}
 	};
 
@@ -72,3 +95,4 @@ export default class TestFeatures {
 		return result;
 	};
 }
+export { CallbackStatus, TestCallback };
