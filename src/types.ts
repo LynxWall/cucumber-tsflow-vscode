@@ -69,13 +69,21 @@ export type FeatureFromStepFile = {
 	scenarios: ScenarioFromStepFile[];
 };
 
+export type FeatureStepMatch = {
+	feature: FeatureFromStepFile;
+	scenario?: ScenarioFromStepFile;
+};
+
+export type TestFeatureStep = {
+	featureFile: string;
+	lineNumber?: Number;
+};
+
 export type StepFileFeature = {
 	upsertFeature: (feature: ParsedFeature) => UseStepFileFeature;
 	getPrimaryFeature: () => FeatureFromStepFile | undefined;
-	getMatchingFeatureAndScenario: (stepText: string) => {
-		feature?: FeatureFromStepFile;
-		scenario?: ScenarioFromStepFile;
-	};
+	getMatchingFeatures: (stepText: string) => Array<FeatureStepMatch>;
+	getMatchingFeaturesAndScenarios: (stepText: string) => Array<FeatureStepMatch>;
 };
 
 export type UseStepFileFeature = {

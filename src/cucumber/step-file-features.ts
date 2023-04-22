@@ -1,5 +1,6 @@
 import { ParsedFeature, ParsedScenario, ParsedStep } from '../types';
 import {
+	FeatureStepMatch,
 	FeatureFromStepFile,
 	ScenarioFromStepFile,
 	StepFromStepFile,
@@ -44,24 +45,32 @@ const stepFileFeatures = () => {
 		return primaryFeature;
 	};
 
-	const getMatchingFeatureAndScenario = (
-		stepText: string
-	): { feature?: FeatureFromStepFile; scenario?: ScenarioFromStepFile } => {
-		let feature = undefined;
-		let scenario = undefined;
+	const getMatchingFeatures = (stepText: string): Array<FeatureStepMatch> => {
+		const matchingFeatures = new Array<FeatureStepMatch>();
 		for (let idx = 0; idx < features.length; idx++) {
 			const featureScenario = useStepFileFeature(features[idx]);
 			const scenarioStep = featureScenario.getMatchingScenario(stepText);
 			if (scenarioStep) {
-				feature = featureScenario.feature;
-				scenario = scenarioStep.scenario;
-				return { feature, scenario };
+				matchingFeatures.push({ feature: featureScenario.feature, scenario: undefined });
+				continue;
 			}
 		}
-		return { feature, scenario };
+		return matchingFeatures;
 	};
 
-	return { upsertFeature, getPrimaryFeature, getMatchingFeatureAndScenario };
+	const getMatchingFeaturesAndScenarios = (stepText: string): Array<FeatureStepMatch> => {
+		const matchingFeatures = new Array<FeatureStepMatch>();
+		for (let idx = 0; idx < features.length; idx++) {
+			const featureScenario = useStepFileFeature(features[idx]);
+			const scenarioStep = featureScenario.getMatchingScenario(stepText);
+			if (scenarioStep) {
+				matchingFeatures.push({ feature: featureScenario.feature, scenario: scenarioStep.scenario });
+			}
+		}
+		return matchingFeatures;
+	};
+
+	return { upsertFeature, getPrimaryFeature, getMatchingFeaturesAndScenarios };
 };
 
 /**

@@ -8,6 +8,7 @@ import cucumberRunner from './cucumber/cucumber-runner';
 import StepFileManager from './cucumber/step-file-manager';
 import TestFeatures from './cucumber/test-features';
 import useCucumberTsFlow from './use-cucumber-tsflow';
+import { TestFeatureStep } from './types';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -15,14 +16,38 @@ export const activate = async (context: vscode.ExtensionContext) => {
 	const ctvConfig = useCtvConfig().getConfig();
 	const cucumberTsFlow = useCucumberTsFlow();
 	const cucumbersettingsPath = ctvConfig.currentCucumberSettingsPath;
-	const stepFileManager = new StepFileManager();
 
 	if (cucumbersettingsPath && cucumberTsFlow.checkCucumberTsFlow()) {
+		// create a test controller
+		const testController = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber TsFlow VS Code');
+
+		// We'll create the "run" type profile here, and give it the function to call.
+		// You can also create debug and coverage profile types. The last `true` argument
+		// indicates that this should by the default "run" profile, in case there were
+		// multiple run profiles.
+		const testRunProfile = testController.createRunProfile(
+			'Run',
+			vscode.TestRunProfileKind.Run,
+			(request, token) => testFeatures.runTests(request, token),
+			true
+		);
+
+		// load test features
+		const stepFileManager = new StepFileManager();
+		const testFeatures = new TestFeatures(stepFileManager, testRunProfile, testController);
+
+		// Custom handler for loading tests. The "test" argument here is undefined,
+		// but if we supported lazy-loading child test then this could be called with
+		// the test whose children VS Code wanted to load.
+		testController.resolveHandler = async test => {
+			testController.items.replace(await testFeatures.loadTests());
+		};
+
 		// Register a run command
 		let runCucumber = vscode.commands.registerCommand(
 			'extension.runCucumber',
-			async (filePath: string, lineNumber: number) => {
-				await cucumberRunner.runCucumber(filePath, lineNumber);
+			async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
+				await testFeatures.runCodeLenseTests(testFeatureSteps, token);
 			}
 		);
 
@@ -43,41 +68,23 @@ export const activate = async (context: vscode.ExtensionContext) => {
 		}
 
 		// handle feature file edits. Keeps the gherkin feature data up to date
-		vscode.workspace.onDidChangeTextDocument(function (e) {
+		vscode.workspace.onDidChangeTextDocument(e => {
 			if (minimatch(e.document.uri.path, ctvConfig.featuresSelector)) {
-				stepFileManager.updateFeature(e.document.uri.path, e.document.getText());
+				stepFileManager.updateFeature(e.document.uri.fsPath, e.document.getText());
 			}
 		});
 
 		// handle saves to a feature file. Keeps the gherkin feature data up to date
-		vscode.workspace.onDidSaveTextDocument(function (e) {
+		vscode.workspace.onDidSaveTextDocument(async e => {
 			if (minimatch(e.uri.path, ctvConfig.featuresSelector)) {
-				stepFileManager.updateFeature(e.uri.path);
+				stepFileManager.updateFeature(e.uri.fsPath);
+				await testFeatures.updateTests(e.uri);
 			}
 		});
 
+		context.subscriptions.push(testController);
 		context.subscriptions.push(runCucumber);
 		context.subscriptions.push(debugCucumber);
-
-		// create a test controller
-		const ctrl = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber TsFlow VS Code');
-		context.subscriptions.push(ctrl);
-
-		// load test features
-		const testFeatures = new TestFeatures(stepFileManager);
-
-		// Custom handler for loading tests. The "test" argument here is undefined,
-		// but if we supported lazy-loading child test then this could be called with
-		// the test whose children VS Code wanted to load.
-		ctrl.resolveHandler = async test => {
-			ctrl.items.replace(await testFeatures.loadTests(ctrl));
-		};
-
-		// We'll create the "run" type profile here, and give it the function to call.
-		// You can also create debug and coverage profile types. The last `true` argument
-		// indicates that this should by the default "run" profile, in case there were
-		// multiple run profiles.
-		ctrl.createRunProfile('Run', vscode.TestRunProfileKind.Run, request => testFeatures.runTests(ctrl, request), true);
 
 		// log the fact that the extension is active
 		ctvConfig.cucumberOutput.appendLine('Cucumber TsFlow for VS Code is now active!');

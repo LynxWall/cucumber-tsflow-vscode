@@ -38,7 +38,7 @@ export default class GherkinManager {
 	public updateFeature = (filePath: string, fileText?: string) => {
 		const feature = fileText
 			? this.gherkinFeature.parseFeature(fileText, filePath)
-			: this.gherkinFeature.loadFeature(filePath);
+			: this.gherkinFeature.loadFeature(filePath, false);
 
 		const featureIdx = this.features.findIndex(f => this.hasSamePath(f.featureFile, filePath));
 		if (featureIdx >= 0) {

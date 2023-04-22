@@ -1,7 +1,8 @@
+import * as vscode from 'vscode';
 import CucumberConfig from './cucumber-config';
 import GherkinManager, { StepInfo, IMapFeaturesResult } from '../gherkin/gherkin-manager';
 import useCtvConfig from '../use-ctv-config';
-import { FeatureFromStepFile, ParsedFeature, ScenarioFromStepFile } from '../types';
+import { FeatureFromStepFile, FeatureStepMatch, ParsedFeature, ScenarioFromStepFile } from '../types';
 import CtvConfig from '../ctv-config';
 
 export default class StepFileManager {
@@ -52,21 +53,39 @@ export default class StepFileManager {
 		return this.gherkin.parsedFeatures;
 	};
 
+	public getParsedFeature = async (uri: vscode.Uri): Promise<ParsedFeature | undefined> => {
+		if (!this.gherkin || this.gherkin.parsedFeatures.length === 0) {
+			await this.getParsedFeatures();
+		}
+		let parsedFeature = this.gherkin.parsedFeatures.find(x => x.featureFile === uri.fsPath);
+		if (!parsedFeature) {
+			// might be a new feature file... reload the features
+			await this.loadFeatures();
+			parsedFeature = this.gherkin.parsedFeatures.find(x => x.featureFile === uri.fsPath);
+		}
+		return parsedFeature;
+	};
+
 	/**
-	 * Get the associated feature and scenario from the step text passed in
+	 * Gets the main feature from the step file
+	 */
+	public getFeatures = (stepText: string): Array<FeatureStepMatch> => {
+		if (this.findFeatureResults?.features) {
+			return this.findFeatureResults?.features.getMatchingFeatures(stepText);
+		}
+		return new Array<FeatureStepMatch>();
+	};
+
+	/**
+	 * Get the associated features and scenarios from the step text passed in
 	 * @param stepText
 	 * @returns
 	 */
-	public getFeatureAndScenario = (
-		stepText: string
-	): {
-		feature?: FeatureFromStepFile;
-		scenario?: ScenarioFromStepFile;
-	} => {
+	public getFeaturesAndScenarios = (stepText: string): Array<FeatureStepMatch> => {
 		if (this.findFeatureResults?.features) {
-			return this.findFeatureResults?.features.getMatchingFeatureAndScenario(stepText);
+			return this.findFeatureResults.features.getMatchingFeaturesAndScenarios(stepText);
 		}
-		return { feature: undefined, scenario: undefined };
+		return new Array<FeatureStepMatch>();
 	};
 
 	/**
