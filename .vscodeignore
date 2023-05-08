@@ -1,5 +1,6 @@
 .vscode
 .vscode-test
+.yarn
 node_modules
 src/
 tsconfig.json
