@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",

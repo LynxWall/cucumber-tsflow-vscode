@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.0.1]
+
+### Update
+
+- Reduce bundle size.
+- Removed unused image file.
+
 ## [2.0.0]
 
 ### Added
