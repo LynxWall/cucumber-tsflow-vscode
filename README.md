@@ -1,13 +1,17 @@
 # Cucumber TsFlow for VS Code
 <base target="_blank">
 
-This extension provides Run and Debug support in Step files for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) in VS Code.
+This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v6.0.2** or greater in VS Code.
 
 ## Features
 
-The initial release of this extension uses Code Lens support in VS Code to add Run and Debug commands to each Given, When, Then step found in a Cucumber step file. In addition, RunAll and DebugAll commands are added to classes in a step file that are annotated with a @binding decorator.
+The latest release of this extension provides both Test Explorer and Code Lens support in VS Code to support running and debugging Scenarios using cucumber-tsflow. 
 
-![Run or Debug cucumber-tsflow](images/CucumberAnimation.gif)
+The test explorer lists all features along with associated scenarios with support to run or debug all scenarios in a feature or specific scenarios.
+
+Code Lens support adds Run and Debug commands to each Given, When, Then step found in a Cucumber step file. In addition, RunAll and DebugAll commands are added to classes in a step file that are annotated with a @binding decorator.
+
+![Run or Debug cucumber-tsflow](images/CucumberVscode.gif)
 
 The execution of Cucumber tests is accomplished by referencing a feature or a scenario within a Cucumber Feature file.  When a step definition file is opened in VS Code, this extension will map the steps it finds with features and scenarios that you have defined. 
 
@@ -24,12 +28,11 @@ This extension **does not** add Code Lens actions to cucumber-tsflow hooks. Howe
 
 This first release focuses on providing run/debug support in step files using Code Lens in VS Code. Planned future releases will include the following:
 
-- VS Code Test Explorer integration - Organized by features -> Scenarios -> Steps.
 - Code snippet generation - Currently cucumber-tsflow will generate code snippets in the terminal output when not able to find matching code for a step. This update will provide the ability to generate complete step definition files for a feature or snippets for scenarios and steps.
 
 ## Requirements
 
-This extension requires [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version 5.1.2 or higher.
+This extension requires [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **6.0.2** or higher.
 
 ## Extension Settings
 
@@ -54,6 +57,7 @@ This extension contributes the following settings:
 | `stepsSelector`    | string  | `**/{steps,step_definitions}/**/*.ts` | Glob pattern used to find step files in your workspace. The default supports multiple test projects in a workspace. |
 | `featuresSelector` | string  | `**/features/**/*.feature`            | Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace. |
 | `preserveEditorFocus`     | boolean | false                                 | Preserve focus on editor when running tests                  |
+| `maxFolderDepth` | number | 10 | Max folder depth for your workspace. Used to search parent folders for closest matching Cucumber settings file for a step file. |
 
 ## Change Log
 
