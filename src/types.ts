@@ -27,15 +27,17 @@ export type ParsedScenario = {
 	title: string;
 	steps: ParsedStep[];
 	tags: string[];
+	exampleRow: any | undefined;
 	lineNumber: number;
 	skippedViaTagFilter: boolean;
 	scenarioContext: ManagedScenarioContext | undefined;
+	args: string[] | undefined;
 };
 
 export type ParsedScenarioOutline = {
 	title: string;
 	tags: string[];
-	scenarios: ParsedScenario[];
+	exampleScenarios: ParsedScenario[];
 	steps: ParsedStep[];
 	lineNumber: number;
 	skippedViaTagFilter: boolean;
@@ -69,13 +71,19 @@ export type FeatureFromStepFile = {
 	scenarios: ScenarioFromStepFile[];
 };
 
+export type FeatureStepMatch = {
+	feature: FeatureFromStepFile;
+	scenario?: ScenarioFromStepFile;
+};
+
+export type TestFeatureStep = {
+	featureFile: string;
+	lineNumber?: Number;
+};
+
 export type StepFileFeature = {
 	upsertFeature: (feature: ParsedFeature) => UseStepFileFeature;
-	getPrimaryFeature: () => FeatureFromStepFile | undefined;
-	getMatchingFeatureAndScenario: (stepText: string) => {
-		feature?: FeatureFromStepFile;
-		scenario?: ScenarioFromStepFile;
-	};
+	getMatchingFeaturesAndScenarios: (stepText: string) => Array<FeatureStepMatch>;
 };
 
 export type UseStepFileFeature = {
@@ -88,5 +96,4 @@ export type UseStepFileScenario = {
 	scenario: ScenarioFromStepFile;
 	upsertStep: (step: ParsedStep) => void;
 	hasStepText: (stepText: string) => boolean;
-	hasGivenWhenThen: () => boolean;
 };

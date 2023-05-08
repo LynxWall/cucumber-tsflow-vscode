@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "1.0.4",
+	"version": "2.0.0",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",
@@ -31,8 +31,7 @@
 		"multi-root ready"
 	],
 	"activationEvents": [
-		"onLanguage:typescript",
-		"onStartupFinished"
+		"workspaceContains:**/*.feature"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -43,26 +42,22 @@
 					"cucumber-tsflow.configFile": {
 						"type": "string",
 						"default": "",
-						"description": "Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')",
-						"scope": "window"
+						"description": "Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')"
 					},
 					"cucumber-tsflow.profile": {
 						"type": "string",
 						"default": "default",
-						"description": "Cucumber profile to use when running or debugging tests.",
-						"scope": "window"
+						"description": "Cucumber profile to use when running or debugging tests."
 					},
 					"cucumber-tsflow.cucumberPath": {
 						"type": "string",
 						"default": "",
-						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)",
-						"scope": "window"
+						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)"
 					},
 					"cucumber-tsflow.projectPath": {
 						"type": "string",
 						"default": "",
-						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)",
-						"scope": "window"
+						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)"
 					},
 					"cucumber-tsflow.runOptions": {
 						"type": "array",
@@ -71,20 +66,17 @@
 							"type": "string",
 							"description": "CLI Option e.g. ['--backtrace', 'true']"
 						},
-						"description": "Add CLI Options to the Cucumber-tsflow Command e.g. https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options",
-						"scope": "window"
+						"description": "Add CLI Options to the Cucumber-tsflow Command e.g. https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options"
 					},
 					"cucumber-tsflow.debugOptions": {
 						"type": "object",
 						"default": {},
-						"description": "Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] })",
-						"scope": "window"
+						"description": "Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] })"
 					},
 					"cucumber-tsflow.disableCodeLens": {
 						"type": "boolean",
 						"default": false,
-						"description": "Disable Code Lens feature",
-						"scope": "window"
+						"description": "Disable Code Lens feature"
 					},
 					"cucumber-tsflow.stepsSelector": {
 						"type": "string",
@@ -96,11 +88,15 @@
 						"default": "**/features/**/*.feature",
 						"description": "Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace."
 					},
+					"cucumber-tsflow.maxFolderDepth": {
+						"type": "number",
+						"default": 10,
+						"description": "Max folder depth for your workspace. Used to search parent folders for closest matching Cucumber settings file for a step file"
+					},
 					"cucumber-tsflow.preserveEditorFocus": {
 						"type": "boolean",
 						"default": false,
-						"description": "Preserve focus on editor when running tests",
-						"scope": "window"
+						"description": "Preserve focus on editor when running tests"
 					}
 				}
 			}
@@ -112,32 +108,34 @@
 		"build": "npm run -S esbuild-base -- --sourcemap",
 		"watch": "npm run -S esbuild-base -- --sourcemap --watch",
 		"format": "prettier --write \"src/**/*.ts\"",
-		"lint": "eslint src --ext ts && tsc --noEmit",
+		"lint": "eslint --ext ts --ignore-path .eslintignore src",
 		"build:test": "rimraf out && tsc -p ./",
 		"test": "npm run -S build:test && node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@lynxwall/cucumber-tsflow": "^5.1.3",
-		"@types/glob": "^7.2.0",
-		"@types/mocha": "^9.1.1",
-		"@types/node": "^16.18.15",
+		"@lynxwall/cucumber-tsflow": "^6.1.1",
+		"@types/minimatch": "^5.1.2",
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^18.16.5",
+		"@types/ramda": "^0.29.1",
 		"@types/semver": "^7.3.13",
+		"@types/verror": "~1.10.6",
 		"@types/vscode": "^1.76.0",
-		"@typescript-eslint/eslint-plugin": "^5.55.0",
-		"@typescript-eslint/parser": "^5.55.0",
+		"@typescript-eslint/eslint-plugin": "^5.59.2",
+		"@typescript-eslint/parser": "^5.59.2",
 		"@vscode/test-electron": "^2.3.0",
-		"esbuild": "^0.14.54",
-		"eslint": "^8.36.0",
-		"glob": "^8.1.0",
+		"esbuild": "^0.17.18",
+		"eslint": "^8.40.0",
+		"glob": "^9.3.5",
 		"mocha": "^10.2.0",
-		"prettier": "^2.8.4",
-		"rimraf": "^3.0.2",
+		"prettier": "^2.8.8",
+		"rimraf": "^4.4.1",
 		"typescript": "~4.7.4"
 	},
 	"dependencies": {
-		"minimatch": "^5.1.6",
-		"semver": "^7.3.8",
-		"vscode-test-adapter-api": "^1.9.0"
+		"minimatch": "^8.0.4",
+		"ramda": "^0.29.0",
+		"semver": "^7.5.0",
+		"verror": "~1.10.1"
 	}
 }
-

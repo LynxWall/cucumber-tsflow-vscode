@@ -1,5 +1,6 @@
 import { ParsedFeature, ParsedScenario, ParsedStep } from '../types';
 import {
+	FeatureStepMatch,
 	FeatureFromStepFile,
 	ScenarioFromStepFile,
 	StepFromStepFile,
@@ -28,40 +29,19 @@ const stepFileFeatures = () => {
 		return useStepFileFeature(sfFeature);
 	};
 
-	const getPrimaryFeature = (): FeatureFromStepFile | undefined => {
-		let primaryFeature = undefined;
-		for (let feature of features) {
-			for (const scenario of feature.scenarios) {
-				if (useStepFileScenario(scenario).hasGivenWhenThen()) {
-					primaryFeature = feature;
-					break;
-				}
-			}
-			if (primaryFeature) {
-				break;
-			}
-		}
-		return primaryFeature;
-	};
-
-	const getMatchingFeatureAndScenario = (
-		stepText: string
-	): { feature?: FeatureFromStepFile; scenario?: ScenarioFromStepFile } => {
-		let feature = undefined;
-		let scenario = undefined;
+	const getMatchingFeaturesAndScenarios = (stepText: string): Array<FeatureStepMatch> => {
+		const matchingFeatures = new Array<FeatureStepMatch>();
 		for (let idx = 0; idx < features.length; idx++) {
 			const featureScenario = useStepFileFeature(features[idx]);
 			const scenarioStep = featureScenario.getMatchingScenario(stepText);
 			if (scenarioStep) {
-				feature = featureScenario.feature;
-				scenario = scenarioStep.scenario;
-				return { feature, scenario };
+				matchingFeatures.push({ feature: featureScenario.feature, scenario: scenarioStep.scenario });
 			}
 		}
-		return { feature, scenario };
+		return matchingFeatures;
 	};
 
-	return { upsertFeature, getPrimaryFeature, getMatchingFeatureAndScenario };
+	return { upsertFeature, getMatchingFeaturesAndScenarios };
 };
 
 /**
@@ -86,7 +66,7 @@ const useStepFileFeature = (feature: FeatureFromStepFile) => {
 	const getMatchingScenario = (stepText: string): UseStepFileScenario | undefined => {
 		for (let idx = 0; idx < feature.scenarios.length; idx++) {
 			const scenario = useStepFileScenario(feature.scenarios[idx]);
-			if (scenario.hasStepText(stepText) && scenario.hasGivenWhenThen()) {
+			if (scenario.hasStepText(stepText)) {
 				return scenario;
 			}
 		}
@@ -120,20 +100,7 @@ const useStepFileScenario = (scenario: ScenarioFromStepFile) => {
 		return match;
 	};
 
-	const hasGivenWhenThen = (): boolean => {
-		const allMatch = ['given', 'when', 'then'].every(step => {
-			return scenario.steps.find(s => s.keyword === step) !== undefined;
-		});
-		if (!allMatch) {
-			// check for just given/then
-			return ['given', 'then'].every(step => {
-				return scenario.steps.find(s => s.keyword === step) !== undefined;
-			});
-		}
-		return allMatch;
-	};
-
-	return { scenario, upsertStep, hasStepText, hasGivenWhenThen };
+	return { scenario, upsertStep, hasStepText };
 };
 
 export { stepFileFeatures };
