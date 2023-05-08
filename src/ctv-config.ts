@@ -77,12 +77,18 @@ export default class CtvConfig {
 		return {};
 	}
 
+	public get debugPort(): number {
+		return 9777;
+	}
+
 	/**
 	 * The command that runs cucumber-tsflow.
 	 * Defaults to: node "node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow"
 	 */
-	public get runCommand(): string {
-		return `node ${quote(this.cucumberBinPath)}`;
+	public runCommand(debug: boolean = false): string {
+		return debug
+			? `node --inspect=${this.debugPort} ${quote(this.cucumberBinPath)}`
+			: `node ${quote(this.cucumberBinPath)}`;
 	}
 
 	/**
@@ -211,7 +217,8 @@ export default class CtvConfig {
 		if (this.currentWorkspaceRootPath) {
 			if (!this.cucumberSettingsFromRoot) {
 				const cucumberFiles = globSync('**/cucumber.*', { cwd: this.currentWorkspaceRootPath });
-				for (const cucumberFile of cucumberFiles) {
+				for (let idx = 0; idx < cucumberFiles.length; idx++) {
+					const cucumberFile = cucumberFiles[idx];
 					if (cucumberFile.indexOf('node_modules') < 0) {
 						const settingsPath = path.join(this.currentWorkspaceRootPath!, cucumberFile);
 						const data = fs.readFileSync(settingsPath);
@@ -253,7 +260,8 @@ export default class CtvConfig {
 				for (let x = 0; x < maxDepth; x++) {
 					const cucumberFiles = globSync('./cucumber.*', { cwd: currentFolderPath });
 					if (cucumberFiles.length > 0) {
-						for (const cucumberFile of cucumberFiles) {
+						for (let idx = 0; idx < cucumberFiles.length; idx++) {
+							const cucumberFile = cucumberFiles[idx];
 							if (cucumberFile.indexOf('node_modules') < 0) {
 								const settingsPath = path.join(currentFolderPath, cucumberFile);
 								const data = fs.readFileSync(settingsPath);

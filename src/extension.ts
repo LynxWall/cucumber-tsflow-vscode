@@ -4,9 +4,8 @@ import * as vscode from 'vscode';
 import minimatch from 'minimatch';
 import StepCodeLensProvider from './step-code-lens-provider';
 import useCtvConfig from './use-ctv-config';
-import cucumberRunner from './cucumber/cucumber-runner';
 import StepFileManager from './cucumber/step-file-manager';
-import TestFeatures from './cucumber/test-features';
+import CucumberTestFeatures from './cucumber/cucumber-test-features';
 import useCucumberTsFlow from './use-cucumber-tsflow';
 import { TestFeatureStep } from './types';
 
@@ -21,20 +20,27 @@ export const activate = async (context: vscode.ExtensionContext) => {
 		// create a test controller
 		const testController = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber TsFlow VS Code');
 
+		// load test features
+		const stepFileManager = new StepFileManager();
+		await stepFileManager.loadFeatures();
+		const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
+
 		// We'll create the "run" type profile here, and give it the function to call.
 		// You can also create debug and coverage profile types. The last `true` argument
 		// indicates that this should by the default "run" profile, in case there were
 		// multiple run profiles.
-		const testRunProfile = testController.createRunProfile(
+		testController.createRunProfile(
 			'Run',
 			vscode.TestRunProfileKind.Run,
 			(request, token) => testFeatures.runTests(request, token),
 			true
 		);
-
-		// load test features
-		const stepFileManager = new StepFileManager();
-		const testFeatures = new TestFeatures(stepFileManager, testRunProfile, testController);
+		testController.createRunProfile(
+			'Debug',
+			vscode.TestRunProfileKind.Debug,
+			(request, token) => testFeatures.runTests(request, token, true),
+			true
+		);
 
 		// Custom handler for loading tests. The "test" argument here is undefined,
 		// but if we supported lazy-loading child test then this could be called with
@@ -54,8 +60,8 @@ export const activate = async (context: vscode.ExtensionContext) => {
 		// register a debug command
 		let debugCucumber = vscode.commands.registerCommand(
 			'extension.debugCucumber',
-			async (filePath: string, lineNumber: number) => {
-				await cucumberRunner.debugCucumber(filePath, lineNumber);
+			async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
+				await testFeatures.runCodeLenseTests(testFeatureSteps, token, true);
 			}
 		);
 
@@ -67,17 +73,12 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			context.subscriptions.push(codeLensProviderDisposable);
 		}
 
-		// handle feature file edits. Keeps the gherkin feature data up to date
-		vscode.workspace.onDidChangeTextDocument(e => {
-			if (minimatch(e.document.uri.path, ctvConfig.featuresSelector)) {
-				stepFileManager.updateFeature(e.document.uri.fsPath, e.document.getText());
-			}
-		});
-
 		// handle saves to a feature file. Keeps the gherkin feature data up to date
 		vscode.workspace.onDidSaveTextDocument(async e => {
 			if (minimatch(e.uri.path, ctvConfig.featuresSelector)) {
-				stepFileManager.updateFeature(e.uri.fsPath);
+				await stepFileManager.updateFeature(e.uri.fsPath);
+				await testFeatures.updateTests(e.uri);
+			} else if (minimatch(e.uri.path, ctvConfig.stepsSelector)) {
 				await testFeatures.updateTests(e.uri);
 			}
 		});

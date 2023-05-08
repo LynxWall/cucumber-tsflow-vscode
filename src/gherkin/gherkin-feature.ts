@@ -1,6 +1,6 @@
 import * as path from 'path';
-import { readFileSync } from 'fs';
-import { sync as globSync } from 'glob';
+import * as fs from 'fs';
+import { glob } from 'glob';
 import * as messages from '@cucumber/messages';
 import { getJestCucumberConfiguration, Options } from './configuration';
 import { AstBuilder, GherkinClassicTokenMatcher, Parser, Dialect, dialects } from '@cucumber/gherkin/dist/src';
@@ -17,12 +17,12 @@ export default class GherkinFeature {
 		this.cwd = this.ctvConfig.cucumberPath as string;
 	}
 
-	public loadFeature = (featureFilePath: string, addCwd: boolean, options?: Options) => {
+	public loadFeature = async (featureFilePath: string, addCwd: boolean, options?: Options) => {
 		try {
 			if (addCwd) {
 				featureFilePath = path.join(this.cwd, featureFilePath);
 			}
-			const featureText: string = readFileSync(featureFilePath, 'utf8');
+			const featureText: string = await fs.promises.readFile(featureFilePath, { encoding: 'utf8' });
 			return this.parseFeature(featureText, featureFilePath, options);
 		} catch (err: any) {
 			if (err.code === 'ENOENT') {
@@ -33,10 +33,10 @@ export default class GherkinFeature {
 		}
 	};
 
-	public loadFeatures = (globPattern: string, options?: Options) => {
-		const featureFiles = globSync(globPattern, { cwd: this.cwd });
+	public loadFeatures = async (globPattern: string, options?: Options) => {
+		const featureFiles = await glob(globPattern, { cwd: this.cwd });
 
-		return featureFiles.map(featureFilePath => this.loadFeature(featureFilePath, true, options));
+		return await Promise.all(featureFiles.map(featureFilePath => this.loadFeature(featureFilePath, true, options)));
 	};
 
 	public parseFeature = (featureText: string, featureFilePath: string, options?: Options): ParsedFeature => {
@@ -216,7 +216,8 @@ export default class GherkinFeature {
 		return {
 			title: this.getOutlineDynamicTitle(exampleTableRow, outlineScenario.title),
 			steps: this.parseScenarioOutlineExampleSteps(exampleTableRow, outlineScenario.steps),
-			tags: Array.from(new Set<string>([...outlineScenario.tags, ...exampleSetTags]))
+			tags: Array.from(new Set<string>([...outlineScenario.tags, ...exampleSetTags])),
+			exampleRow: exampleTableRow
 		} as ParsedScenario;
 	};
 
@@ -243,8 +244,8 @@ export default class GherkinFeature {
 
 		return {
 			title: outlineScenario.title,
-			scenarios: this.parseScenarioOutlineExampleSets(astScenarioOutline.scenario.examples, outlineScenario),
 			tags: outlineScenario.tags,
+			exampleScenarios: this.parseScenarioOutlineExampleSets(astScenarioOutline.scenario.examples, outlineScenario),
 			steps: outlineScenario.steps,
 			lineNumber: astScenarioOutline.scenario.location.line,
 			scenarioContext: undefined
@@ -276,7 +277,8 @@ export default class GherkinFeature {
 			return [...allBackgroundSteps, ...nextBackground.steps];
 		}, []);
 
-		for (const child of astChildren) {
+		for (let idx = 0; idx < astChildren.length; idx++) {
+			const child = astChildren[idx];
 			if (child.scenario) {
 				child.scenario.steps = [...backgroundSteps, ...child.scenario.steps];
 			}
@@ -331,13 +333,15 @@ export default class GherkinFeature {
 			'rule'
 		];
 
-		for (const prop of props) {
+		for (let pIdx = 0; pIdx < props.length; pIdx++) {
+			const prop = props[pIdx];
 			const dialectWords = translateDialect[prop];
 			const translationWords = englishDialect[prop];
 			let index = 0;
 			let defaultWordIndex: number | null = null;
 
-			for (const dialectWord of dialectWords) {
+			for (let dIdx = 0; dIdx < dialectWords.length; dIdx++) {
+				const dialectWord = dialectWords[dIdx];
 				// skip "* " word
 				if (dialectWord.indexOf('*') !== 0) {
 					if (translationWords[index] !== undefined) {
@@ -370,7 +374,8 @@ export default class GherkinFeature {
 		astFeature.language = 'en';
 		astFeature.keyword = translationMap[astFeature.keyword] || astFeature.keyword;
 
-		for (const child of astFeature.children) {
+		for (let cIdx = 0; cIdx < astFeature.children.length; cIdx++) {
+			const child = astFeature.children[cIdx];
 			if (child.background) {
 				child.background.keyword = translationMap[child.background.keyword] || child.background.keyword;
 			}
@@ -378,11 +383,13 @@ export default class GherkinFeature {
 			if (child.scenario) {
 				child.scenario.keyword = translationMap[child.scenario.keyword] || child.scenario.keyword;
 
-				for (const step of child.scenario.steps) {
+				for (let sIdx = 0; sIdx < child.scenario.steps.length; sIdx++) {
+					const step = child.scenario.steps[sIdx];
 					step.keyword = translationMap[step.keyword] || step.keyword;
 				}
 
-				for (const example of child.scenario.examples) {
+				for (let eIdx = 0; eIdx < child.scenario.examples.length; eIdx++) {
+					const example = child.scenario.examples[eIdx];
 					example.keyword = translationMap[example.keyword] || example.keyword;
 				}
 			}

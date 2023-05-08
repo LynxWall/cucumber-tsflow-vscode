@@ -6,7 +6,7 @@ const crlf = '\r\n';
 const forceCRLF = (str: string) => str.replace(/(?<!\r)\n/gm, '\r\n');
 
 export class TestOutputScanner implements vscode.Disposable {
-	protected outputEventEmitter = new vscode.EventEmitter<string>();
+	protected outputEventEmitter = new vscode.EventEmitter<Buffer>();
 	protected onCloseEmitter = new vscode.EventEmitter<number>();
 	protected onErrorEmitter = new vscode.EventEmitter<string>();
 
@@ -26,8 +26,8 @@ export class TestOutputScanner implements vscode.Disposable {
 	public readonly onRunnerClose = this.onCloseEmitter.event;
 
 	constructor(private readonly process: ChildProcessWithoutNullStreams) {
-		process.stdout.on('data', data => this.outputEventEmitter.fire(data.toString('utf8')));
-		process.stderr.on('data', data => this.outputEventEmitter.fire(data.toString('utf8')));
+		process.stdout.on('data', data => this.outputEventEmitter.fire(data));
+		//process.stderr.on('data', data => this.outputEventEmitter.fire(data));
 		process.on('error', e => this.onErrorEmitter.fire(e.message));
 		process.on('close', code => {
 			if (code !== null) {
@@ -48,12 +48,13 @@ export class TestOutputScanner implements vscode.Disposable {
 	}
 }
 
-export async function scanTestOutput(
+export const scanTestOutput = async (
 	testItem: vscode.TestItem,
 	task: vscode.TestRun,
 	scanner: TestOutputScanner,
 	cancellation: vscode.CancellationToken
-): Promise<void> {
+): Promise<void> => {
+	let buffer = Buffer.from(`\r\n${styles.blue.open}Executing Scenario: ${testItem.label}\r\n${styles.blue.close}`);
 	const defaultAppend = (str: string) => task.appendOutput(str + crlf, undefined, testItem);
 	try {
 		if (cancellation.isCancellationRequested) {
@@ -61,7 +62,6 @@ export async function scanTestOutput(
 		}
 
 		await new Promise<void>(resolve => {
-			let buffer = `\r\n${styles.green.open}Executing Scenario: ${testItem.label}\r\n${styles.green.close}`;
 			cancellation.onCancellationRequested(() => {
 				resolve();
 			});
@@ -71,12 +71,10 @@ export async function scanTestOutput(
 				resolve();
 			});
 
-			scanner.onRunnerOutput(data => {
-				buffer += `${data}`;
-			});
+			scanner.onRunnerOutput(data => (buffer = Buffer.from([...buffer, ...data])));
 
 			scanner.onRunnerClose(code => {
-				defaultAppend(forceCRLF(buffer));
+				task.appendOutput(forceCRLF(buffer.toString()), undefined, testItem);
 				switch (code) {
 					case 0:
 						defaultAppend(`${styles.green.open}${testItem.label}: Passed!${styles.green.close}`);
@@ -90,6 +88,7 @@ export async function scanTestOutput(
 						break;
 					case 2:
 						defaultAppend(`${styles.red.open}${testItem.label}: Failed!${styles.red.close}`);
+						task.failed(testItem, new vscode.TestMessage(`${testItem.label}: Failed!`));
 						break;
 				}
 				resolve();
@@ -100,4 +99,4 @@ export async function scanTestOutput(
 	} finally {
 		scanner.dispose();
 	}
-}
+};

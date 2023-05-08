@@ -16,11 +16,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 		const featureArgs = new Array<TestFeatureStep>();
 		try {
 			const steps = await this.stepFileManager.getSteps(document.getText());
-			for (const step of steps) {
+			for (let sIdx = 0; sIdx < steps.length; sIdx++) {
+				const step = steps[sIdx];
 				if (['given', 'when', 'then', 'and'].find(x => x === step.name)) {
 					const featureStepArgs = new Array<TestFeatureStep>();
 					const matchingFeatures = this.stepFileManager.getFeaturesAndScenarios(step.text);
-					for (const match of matchingFeatures) {
+
+					for (let fIdx = 0; fIdx < matchingFeatures.length; fIdx++) {
+						const match = matchingFeatures[fIdx];
 						featureStepArgs.push({ featureFile: match.feature.featureFile, lineNumber: match.scenario?.lineNumber });
 						if (
 							featureArgs.findIndex(
@@ -40,20 +43,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 								arguments: [featureStepArgs, token]
 							})
 						);
+						codeLens.push(
+							new CodeLens(range, {
+								title: 'Debug',
+								command: 'extension.debugCucumber',
+								arguments: [featureStepArgs, token]
+							})
+						);
 					}
-
-					// const { feature, scenario } = this.stepFileManager.getFeatureAndScenario(step.text);
-					// if (feature && scenario) {
-					// 	const pos = new Position(step.lineNo - 1, 0);
-					// 	const range = new Range(pos, pos);
-					// 	codeLens.push(
-					// 		new CodeLens(range, {
-					// 			title: 'Debug',
-					// 			command: 'extension.debugCucumber',
-					// 			arguments: [feature.featureFile, scenario.lineNumber]
-					// 		})
-					// 	);
-					// }
 				}
 			}
 			// Add runAll | debugAll to the binding
@@ -68,13 +65,13 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 						arguments: [featureArgs, token]
 					})
 				);
-				// codeLens.push(
-				// 	new CodeLens(range, {
-				// 		title: 'DebugAll',
-				// 		command: 'extension.debugCucumber',
-				// 		arguments: [primaryFeature.featureFile, undefined]
-				// 	})
-				// );
+				codeLens.push(
+					new CodeLens(range, {
+						title: 'DebugAll',
+						command: 'extension.debugCucumber',
+						arguments: [featureArgs, token]
+					})
+				);
 			}
 		} catch (e) {
 			// Ignore error and keep showing Run/Debug buttons at same position

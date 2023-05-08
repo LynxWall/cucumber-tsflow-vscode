@@ -24,21 +24,21 @@ export default class GherkinManager {
 	private features: Array<ParsedFeature> = [];
 	private gherkinFeature = new GherkinFeature();
 
-	constructor(paths: string[]) {
-		for (const path of paths) {
-			const features = this.gherkinFeature.loadFeatures(path);
+	public loadFeatures = async (paths: string[]): Promise<void> => {
+		for (let idx = 0; idx < paths.length; idx++) {
+			const features = await this.gherkinFeature.loadFeatures(paths[idx]);
 			this.features = [...this.features, ...features];
 		}
-	}
+	};
 
 	public get parsedFeatures(): Array<ParsedFeature> {
 		return this.features;
 	}
 
-	public updateFeature = (filePath: string, fileText?: string) => {
+	public updateFeature = async (filePath: string, fileText?: string) => {
 		const feature = fileText
 			? this.gherkinFeature.parseFeature(fileText, filePath)
-			: this.gherkinFeature.loadFeature(filePath, false);
+			: await this.gherkinFeature.loadFeature(filePath, false);
 
 		const featureIdx = this.features.findIndex(f => this.hasSamePath(f.featureFile, filePath));
 		if (featureIdx >= 0) {
@@ -51,7 +51,7 @@ export default class GherkinManager {
 	private hasSamePath = (gherkinPath: string, vscodePath: string): boolean => {
 		// vscode paths are normalized with leading slash
 		// check to see if we need to normalize the path
-		if (gherkinPath.indexOf('\\') >= 0) {
+		if (gherkinPath.indexOf('\\') >= 0 && vscodePath.indexOf('/') >= 0) {
 			gherkinPath = normalizePath(`/${gherkinPath}`);
 		}
 		return gherkinPath === vscodePath;
@@ -67,17 +67,21 @@ export default class GherkinManager {
 		const sfFeatures = stepFileFeatures();
 
 		const fileSteps = this.parseSteps(fileText);
-		for (const feature of this.features) {
-			for (const scenario of feature.scenarios) {
-				for (const step of scenario.steps) {
-					this.findAddStep(sfFeatures, fileSteps, feature, scenario, step);
+		for (let fIdx = 0; fIdx < this.features.length; fIdx++) {
+			const feature = this.features[fIdx];
+			for (let sIdx = 0; sIdx < feature.scenarios.length; sIdx++) {
+				const scenario = feature.scenarios[sIdx];
+				for (let stIdx = 0; stIdx < scenario.steps.length; stIdx++) {
+					this.findAddStep(sfFeatures, fileSteps, feature, scenario, scenario.steps[stIdx]);
 				}
 			}
-			for (const scenarioOutline of feature.scenarioOutlines) {
-				for (const scenario of scenarioOutline.scenarios) {
+			for (let oIdx = 0; oIdx < feature.scenarioOutlines.length; oIdx++) {
+				const scenarioOutline = feature.scenarioOutlines[oIdx];
+				if (scenarioOutline.exampleScenarios.length > 0) {
+					const scenario = scenarioOutline.exampleScenarios[0];
 					scenario.lineNumber = scenarioOutline.lineNumber;
-					for (const step of scenario.steps) {
-						this.findAddStep(sfFeatures, fileSteps, feature, scenario, step);
+					for (let osIdx = 0; osIdx < scenario.steps.length; osIdx++) {
+						this.findAddStep(sfFeatures, fileSteps, feature, scenario, scenario.steps[osIdx]);
 					}
 				}
 			}
