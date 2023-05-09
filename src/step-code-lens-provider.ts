@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import { CodeLens, CodeLensProvider, Position, Range, TextDocument } from 'vscode';
+import CtvConfig from './ctv-config';
 import StepFileManager from './cucumber/step-file-manager';
 import { TestFeatureStep } from './types';
+import useCtvConfig from './use-ctv-config';
 
 export default class StepCodeLensProvider implements CodeLensProvider {
 	private stepFileManager: StepFileManager;
+	private ctvConfig: CtvConfig;
 
 	constructor(stepFileManager: StepFileManager) {
+		this.ctvConfig = useCtvConfig().getConfig();
 		this.stepFileManager = stepFileManager;
 	}
 
@@ -15,6 +19,10 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 
 		const featureArgs = new Array<TestFeatureStep>();
 		try {
+			if (!this.stepFileManager.hasFeatures) {
+				await this.stepFileManager.loadFeatures();
+			}
+
 			const steps = await this.stepFileManager.getSteps(document);
 			for (let sIdx = 0; sIdx < steps.length; sIdx++) {
 				const step = steps[sIdx];

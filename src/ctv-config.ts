@@ -138,7 +138,9 @@ export default class CtvConfig {
 
 		const setOptions = new Set(options);
 		if (this.runOptions) {
-			this.runOptions.forEach(option => setOptions.add(option));
+			for (let idx = 0; idx < this.runOptions.length; idx++) {
+				setOptions.add(this.runOptions[idx]);
+			}
 		}
 
 		args.push(...setOptions);

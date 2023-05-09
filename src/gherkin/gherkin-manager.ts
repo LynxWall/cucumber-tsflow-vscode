@@ -88,10 +88,12 @@ export default class GherkinManager {
 			for (let oIdx = 0; oIdx < feature.scenarioOutlines.length; oIdx++) {
 				const scenarioOutline = feature.scenarioOutlines[oIdx];
 				if (scenarioOutline.exampleScenarios.length > 0) {
-					const scenario = scenarioOutline.exampleScenarios[0];
-					scenario.lineNumber = scenarioOutline.lineNumber;
-					for (let osIdx = 0; osIdx < scenario.steps.length; osIdx++) {
-						this.findAddStep(sfFeatures, fileSteps, feature, scenario, scenario.steps[osIdx]);
+					for (let osIdx = 0; osIdx < scenarioOutline.exampleScenarios.length; osIdx++) {
+						const scenario = scenarioOutline.exampleScenarios[osIdx];
+						scenario.lineNumber = scenarioOutline.lineNumber;
+						for (let osIdx = 0; osIdx < scenario.steps.length; osIdx++) {
+							this.findAddStep(sfFeatures, fileSteps, feature, scenario, scenario.steps[osIdx]);
+						}
 					}
 				}
 			}
@@ -144,44 +146,46 @@ export default class GherkinManager {
 		//const stepText: string = readFileSync(filePath, 'utf8');
 		// get all of the decorator strings
 		const stepDecorators = stepText.match(/@\w*\(([^()]+)?\)/g);
-		stepDecorators?.forEach(decorator => {
-			const stepName = stepNames.find(x => decorator.toLowerCase().indexOf(x) >= 0);
-			if (stepName) {
-				const stepInfo = new StepInfo(stepName);
-				// extract strings from inside decorator parens,
-				// can be wrapped in single or double quotes
-				const paramsDouble = decorator.match(/["]\s*([^"]+?)\s*["]/g);
-				const paramsSingle = decorator.match(/[']\s*([^']+?)\s*[']/g);
+		if (stepDecorators) {
+			for (let idx = 0; idx < stepDecorators.length; idx++) {
+				const decorator = stepDecorators[idx];
+				const stepName = stepNames.find(x => decorator.toLowerCase().indexOf(x) >= 0);
+				if (stepName) {
+					const stepInfo = new StepInfo(stepName);
+					// extract strings from inside decorator parens,
+					// can be wrapped in single or double quotes
+					const paramsDouble = decorator.match(/["]\s*([^"]+?)\s*["]/g);
+					const paramsSingle = decorator.match(/[']\s*([^']+?)\s*[']/g);
 
-				let stepParams = undefined;
-				if (paramsDouble && paramsSingle) {
-					stepParams = paramsDouble.length > paramsSingle.length ? paramsDouble : paramsSingle;
-				} else {
-					stepParams = paramsDouble ?? paramsSingle;
-				}
-				if (stepParams && stepParams.length > 0) {
-					// first param in hooks is the tags parameter
-					if (this.isHook(stepName)) {
-						stepInfo.tags = stepParams[0].substring(1, stepParams[0].length - 1);
+					let stepParams = undefined;
+					if (paramsDouble && paramsSingle) {
+						stepParams = paramsDouble.length > paramsSingle.length ? paramsDouble : paramsSingle;
 					} else {
-						// steps support four parameters with last three optional
-						// first is the pattern and second is a tag, which are the
-						// two peices of information we need to make a match
-						stepInfo.text = stepParams[0].substring(1, stepParams[0].length - 1);
-						if (stepParams.length > 1 && hasStringValue(stepParams[1])) {
-							stepInfo.tags = stepParams[1].substring(1, stepParams[1].length - 1);
+						stepParams = paramsDouble ?? paramsSingle;
+					}
+					if (stepParams && stepParams.length > 0) {
+						// first param in hooks is the tags parameter
+						if (this.isHook(stepName)) {
+							stepInfo.tags = stepParams[0].substring(1, stepParams[0].length - 1);
+						} else {
+							// steps support four parameters with last three optional
+							// first is the pattern and second is a tag, which are the
+							// two peices of information we need to make a match
+							stepInfo.text = stepParams[0].substring(1, stepParams[0].length - 1);
+							if (stepParams.length > 1 && hasStringValue(stepParams[1])) {
+								stepInfo.tags = stepParams[1].substring(1, stepParams[1].length - 1);
+							}
 						}
 					}
+					if (stepName === 'binding') {
+						stepInfo.lineNo = this.getLine(stepText, '@binding');
+					} else {
+						stepInfo.lineNo = this.getLine(stepText, stepInfo.text);
+					}
+					steps.push(stepInfo);
 				}
-				if (stepName === 'binding') {
-					stepInfo.lineNo = this.getLine(stepText, '@binding');
-				} else {
-					stepInfo.lineNo = this.getLine(stepText, stepInfo.text);
-				}
-				steps.push(stepInfo);
 			}
-		});
-
+		}
 		return steps;
 	};
 

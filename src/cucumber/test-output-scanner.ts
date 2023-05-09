@@ -57,12 +57,10 @@ export const scanTestOutput = async (
 	let buffer = Buffer.from(`\r\n${styles.blue.open}Executing Scenario: ${testItem.label}\r\n${styles.blue.close}`);
 	const defaultAppend = (str: string) => task.appendOutput(str + crlf, undefined, testItem);
 	try {
-		if (cancellation.isCancellationRequested) {
-			return;
-		}
-
 		await new Promise<void>(resolve => {
 			cancellation.onCancellationRequested(() => {
+				defaultAppend('Cancelling test.');
+				task.skipped(testItem);
 				resolve();
 			});
 

@@ -3,9 +3,11 @@ import { CucumberTestRunner } from './cucumber-test-runner';
 import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
 import { ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
-import { normalizePath } from '../utils';
+import { normalizePath, toKebabCase } from '../utils';
 import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
+import CtvConfig from '../ctv-config';
+import useCtvConfig from '../use-ctv-config';
 
 const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
 
@@ -15,14 +17,16 @@ type ProjectFeature = {
 };
 
 export default class CucumberTestFeatures {
-	scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
-	projectFeatures = new Array<ProjectFeature>();
-	testItems = new Array<TestItem>();
-	stepFileManager: StepFileManager;
-	controller: vscode.TestController;
-	cucumberTestRunner: CucumberTestRunner;
+	private scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
+	private projectFeatures = new Array<ProjectFeature>();
+	private testItems = new Array<TestItem>();
+	private stepFileManager: StepFileManager;
+	private controller: vscode.TestController;
+	private cucumberTestRunner: CucumberTestRunner;
+	private ctvConfig: CtvConfig;
 
 	constructor(stepFileManager: StepFileManager, controller: vscode.TestController) {
+		this.ctvConfig = useCtvConfig().getConfig();
 		this.stepFileManager = stepFileManager;
 		this.controller = controller;
 		this.cucumberTestRunner = new CucumberTestRunner();
@@ -32,29 +36,32 @@ export default class CucumberTestFeatures {
 	 * Load all tests from feature files
 	 */
 	public loadTests = async (): Promise<Array<TestItem>> => {
-		const features = await this.stepFileManager.getParsedFeatures();
-		//this.featureTestItems = new Array<TestItem>();
-		this.scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
-
-		await Promise.all(features.map(feature => this.loadFeature(feature)));
-
-		this.testItems = new Array<TestItem>();
-		if (this.projectFeatures.length > 1) {
-			for (let idx = 0; idx < this.projectFeatures.length; idx++) {
-				const projTestItem = this.projectFeatures[idx];
-				const sortedFeatures = sortByTestLabel(projTestItem.featureTestItems);
-				projTestItem.projectItem.children.replace(sortedFeatures);
-				this.testItems.push(projTestItem.projectItem);
+		if (this.testItems.length === 0) {
+			if (!this.stepFileManager.hasFeatures) {
+				await this.stepFileManager.loadFeatures();
 			}
-		} else if (this.projectFeatures.length === 1) {
-			const sortedFeatures = sortByTestLabel(this.projectFeatures[0].featureTestItems);
-			this.testItems.push(...sortedFeatures);
+			const features = await this.stepFileManager.getParsedFeatures();
+			this.scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
+
+			await Promise.all(features.map(feature => this.loadFeature(feature)));
+
+			if (this.projectFeatures.length > 1) {
+				for (let idx = 0; idx < this.projectFeatures.length; idx++) {
+					const projTestItem = this.projectFeatures[idx];
+					const sortedFeatures = sortByTestLabel(projTestItem.featureTestItems);
+					projTestItem.projectItem.children.replace(sortedFeatures);
+					this.testItems.push(projTestItem.projectItem);
+				}
+			} else if (this.projectFeatures.length === 1) {
+				const sortedFeatures = sortByTestLabel(this.projectFeatures[0].featureTestItems);
+				this.testItems.push(...sortedFeatures);
+			}
 		}
 		return this.testItems;
 	};
 
 	private async loadFeature(feature: ParsedFeature) {
-		const projectId = this.toKebabCase(feature.options.projectName);
+		const projectId = toKebabCase(feature.options.projectName);
 		let projectFeature = this.projectFeatures.find(x => x.projectItem.id === projectId);
 		if (!projectFeature) {
 			projectFeature = {
@@ -64,7 +71,7 @@ export default class CucumberTestFeatures {
 			this.projectFeatures.push(projectFeature);
 		}
 		const featureUri = vscode.Uri.file(normalizePath(feature.featureFile));
-		const featureId = this.toKebabCase(feature.title);
+		const featureId = toKebabCase(feature.title);
 
 		if (projectFeature.featureTestItems.find(x => x.id === featureId) === undefined) {
 			const item = this.controller.createTestItem(featureId, feature.title, featureUri);
@@ -72,7 +79,7 @@ export default class CucumberTestFeatures {
 			if (feature.scenarios.length > 0) {
 				for (let sIdx = 0; sIdx < feature.scenarios.length; sIdx++) {
 					const scenario = feature.scenarios[sIdx];
-					const testItem = this.controller.createTestItem(this.toKebabCase(scenario.title), scenario.title, featureUri);
+					const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
 					this.scenarioData.set(testItem, scenario);
 					scenarioItems.push(testItem);
 				}
@@ -84,7 +91,7 @@ export default class CucumberTestFeatures {
 						const scenario = scenarioOutline.exampleScenarios[0];
 						scenario.lineNumber = scenarioOutline.lineNumber;
 						const testItem = this.controller.createTestItem(
-							this.toKebabCase(scenarioOutline.title),
+							toKebabCase(scenarioOutline.title),
 							scenarioOutline.title,
 							featureUri
 						);
@@ -105,49 +112,41 @@ export default class CucumberTestFeatures {
 	 * @param uri
 	 */
 	public async updateTests(uri: vscode.Uri): Promise<void> {
-		// no need to worry about updates if test items haven't been loaded
-		if (this.projectFeatures) {
-			const parsedFeature = await this.stepFileManager.getParsedFeature(uri);
-			if (parsedFeature && (parsedFeature.scenarios.length > 0 || parsedFeature.scenarioOutlines.length > 0)) {
-				const projectId = this.toKebabCase(parsedFeature.options.projectName);
-				let projectFeature = this.projectFeatures.find(x => x.projectItem.id === projectId);
-				if (projectFeature) {
-					const featureId = this.toKebabCase(parsedFeature.title);
-					const featureUri = vscode.Uri.file(normalizePath(parsedFeature.featureFile));
-					let testFeature = projectFeature.featureTestItems.find(x => x.id === featureId);
-					if (!testFeature) {
-						testFeature = this.controller.createTestItem(featureId, parsedFeature.title, featureUri);
-						projectFeature.featureTestItems.push(testFeature);
-					}
-					const scenarioItems = new Array<TestItem>();
-					for (let sIdx = 0; sIdx < parsedFeature.scenarios.length; sIdx++) {
-						const scenario = parsedFeature.scenarios[sIdx];
-						const testItem = this.controller.createTestItem(
-							this.toKebabCase(scenario.title),
-							scenario.title,
-							featureUri
-						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
-					}
-					if (parsedFeature.scenarioOutlines.length > 0) {
-						for (let soIdx = 0; soIdx < parsedFeature.scenarioOutlines.length; soIdx++) {
-							const scenarioOutline = parsedFeature.scenarioOutlines[soIdx];
-							if (scenarioOutline.exampleScenarios.length > 0) {
-								const scenario = scenarioOutline.exampleScenarios[0];
-								scenario.lineNumber = scenarioOutline.lineNumber;
-								const testItem = this.controller.createTestItem(
-									this.toKebabCase(scenarioOutline.title),
-									scenarioOutline.title,
-									featureUri
-								);
-								this.scenarioData.set(testItem, scenario);
-								scenarioItems.push(testItem);
-							}
+		const parsedFeature = await this.stepFileManager.getParsedFeature(uri);
+		if (parsedFeature && (parsedFeature.scenarios.length > 0 || parsedFeature.scenarioOutlines.length > 0)) {
+			let projectFeature = await this.getProjectFeature(parsedFeature);
+			if (projectFeature) {
+				const featureId = toKebabCase(parsedFeature.title);
+				const featureUri = vscode.Uri.file(normalizePath(parsedFeature.featureFile));
+				let testFeature = projectFeature.featureTestItems.find(x => x.id === featureId);
+				if (!testFeature) {
+					testFeature = this.controller.createTestItem(featureId, parsedFeature.title, featureUri);
+					projectFeature.featureTestItems.push(testFeature);
+				}
+				const scenarioItems = new Array<TestItem>();
+				for (let sIdx = 0; sIdx < parsedFeature.scenarios.length; sIdx++) {
+					const scenario = parsedFeature.scenarios[sIdx];
+					const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
+					this.scenarioData.set(testItem, scenario);
+					scenarioItems.push(testItem);
+				}
+				if (parsedFeature.scenarioOutlines.length > 0) {
+					for (let soIdx = 0; soIdx < parsedFeature.scenarioOutlines.length; soIdx++) {
+						const scenarioOutline = parsedFeature.scenarioOutlines[soIdx];
+						if (scenarioOutline.exampleScenarios.length > 0) {
+							const scenario = scenarioOutline.exampleScenarios[0];
+							scenario.lineNumber = scenarioOutline.lineNumber;
+							const testItem = this.controller.createTestItem(
+								toKebabCase(scenarioOutline.title),
+								scenarioOutline.title,
+								featureUri
+							);
+							this.scenarioData.set(testItem, scenario);
+							scenarioItems.push(testItem);
 						}
 					}
-					testFeature.children.replace(scenarioItems);
 				}
+				testFeature.children.replace(scenarioItems);
 			}
 		}
 	}
@@ -168,10 +167,6 @@ export default class CucumberTestFeatures {
 		const editor = vscode.window.activeTextEditor;
 		if (editor) {
 			await editor.document.save();
-		}
-		// make sure we have tests loaded
-		if (this.projectFeatures.length === 0) {
-			this.loadTests();
 		}
 		// now we can execute
 		await Promise.all(
@@ -254,18 +249,14 @@ export default class CucumberTestFeatures {
 	 * @param filePath
 	 */
 	private async findFeatureTestItem(filePath: string): Promise<TestItem | undefined> {
-		// no need to worry about updates if test items haven't been loaded
 		let testFeature: TestItem | undefined = undefined;
-		if (this.projectFeatures.length > 0) {
-			const featureUri = vscode.Uri.file(normalizePath(filePath));
-			const parsedFeature = await this.stepFileManager.getParsedFeature(featureUri);
-			if (parsedFeature && (parsedFeature.scenarios.length > 0 || parsedFeature.scenarioOutlines.length > 0)) {
-				const projectId = this.toKebabCase(parsedFeature.options.projectName);
-				let projectFeature = this.projectFeatures.find(x => x.projectItem.id === projectId);
-				if (projectFeature) {
-					const featureId = this.toKebabCase(parsedFeature.title);
-					testFeature = projectFeature.featureTestItems.find(x => x.id === featureId);
-				}
+		const featureUri = vscode.Uri.file(normalizePath(filePath));
+		const parsedFeature = await this.stepFileManager.getParsedFeature(featureUri);
+		if (parsedFeature && (parsedFeature.scenarios.length > 0 || parsedFeature.scenarioOutlines.length > 0)) {
+			let projectFeature = await this.getProjectFeature(parsedFeature);
+			if (projectFeature) {
+				const featureId = toKebabCase(parsedFeature.title);
+				testFeature = projectFeature.featureTestItems.find(x => x.id === featureId);
 			}
 		}
 		return testFeature;
@@ -307,8 +298,9 @@ export default class CucumberTestFeatures {
 	) {
 		if (testItem.children && testItem.children.size > 0) {
 			const children = this.getChildNodes(testItem.children);
+			const hasScenario = children.length > 0 && this.scenarioData.get(children[0]) !== undefined;
 			const sortedChildren = sortByTestLabel(children);
-			if (debug) {
+			if (debug || hasScenario === false) {
 				for (let idx = 0; idx < sortedChildren.length; idx++) {
 					await this.testRunner(sortedChildren[idx], run, cancellationToken, debug);
 				}
@@ -317,7 +309,7 @@ export default class CucumberTestFeatures {
 			}
 		} else {
 			const scenario = this.scenarioData.get(testItem);
-			if (scenario) {
+			if (scenario && !cancellationToken.isCancellationRequested) {
 				run.started(testItem);
 				await scanTestOutput(
 					testItem,
@@ -332,6 +324,19 @@ export default class CucumberTestFeatures {
 	}
 
 	/**
+	 * Private helper used to get a projectFeature.
+	 * Will load tests if not already loaded
+	 * @param feature
+	 */
+	private async getProjectFeature(feature: ParsedFeature) {
+		if (this.projectFeatures.length === 0) {
+			await this.loadTests();
+		}
+		const projectId = toKebabCase(feature.options.projectName);
+		return this.projectFeatures.find(x => x.projectItem.id === projectId);
+	}
+
+	/**
 	 * private helper used to get child nodes from
 	 * a testItem Collection.
 	 * @param collection
@@ -342,21 +347,5 @@ export default class CucumberTestFeatures {
 			items.push(item);
 		});
 		return items;
-	}
-
-	/**
-	 * Helper used to convert Title text into kebab id
-	 * @param str
-	 */
-	private toKebabCase(str: string): string {
-		let result = str
-			.match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)
-			?.map(x => x.toLowerCase())
-			.join('-');
-
-		if (!result) {
-			result = str;
-		}
-		return result;
 	}
 }
