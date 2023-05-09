@@ -14,7 +14,7 @@ export class CucumberTestRunner {
 		this.ctvConfig = useCtvConfig().getConfig();
 	}
 
-	public async run(filePath: string, lineNumber: number, testArgs: string[] | undefined) {
+	public async run(filePath: string, lineNumber: number, cwd: string, testArgs: string[] | undefined) {
 		// if we're running on windows and the path starts
 		// with a leading slash we need to strip
 		// off the leading slash
@@ -25,9 +25,8 @@ export class CucumberTestRunner {
 		if (testArgs) {
 			args.push(...testArgs);
 		}
-		const cucumberPath = this.ctvConfig.cucumberPath;
 		const cp = spawn(this.ctvConfig.runCommand(), args, {
-			cwd: cucumberPath,
+			cwd: cwd,
 			shell: true,
 			stdio: 'pipe',
 			// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -36,7 +35,7 @@ export class CucumberTestRunner {
 		return new TestOutputScanner(cp);
 	}
 
-	public async debug(filePath: string, lineNumber: number, testArgs: string[] | undefined) {
+	public async debug(filePath: string, lineNumber: number, cwd: string, testArgs: string[] | undefined) {
 		// if we're running on windows and the path starts
 		// with a leading slash we need to strip
 		// off the leading slash
@@ -47,9 +46,8 @@ export class CucumberTestRunner {
 		if (testArgs) {
 			args.push(...testArgs);
 		}
-		const cucumberPath = this.ctvConfig.cucumberPath;
 		const cp = spawn(this.ctvConfig.runCommand(true), args, {
-			cwd: cucumberPath,
+			cwd: cwd,
 			shell: true,
 			stdio: 'pipe',
 			// eslint-disable-next-line @typescript-eslint/naming-convention

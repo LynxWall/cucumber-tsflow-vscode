@@ -23,10 +23,20 @@ export interface IMapFeaturesResult {
 export default class GherkinManager {
 	private features: Array<ParsedFeature> = [];
 	private gherkinFeature = new GherkinFeature();
+	private projectName: string;
+	private cwd: string;
+
+	constructor(projectName: string, cwd: string) {
+		this.projectName = projectName;
+		this.cwd = cwd;
+	}
 
 	public loadFeatures = async (paths: string[]): Promise<void> => {
 		for (let idx = 0; idx < paths.length; idx++) {
-			const features = await this.gherkinFeature.loadFeatures(paths[idx]);
+			const features = await this.gherkinFeature.loadFeatures(paths[idx], {
+				cwd: this.cwd,
+				projectName: this.projectName
+			});
 			this.features = [...this.features, ...features];
 		}
 	};
@@ -37,8 +47,8 @@ export default class GherkinManager {
 
 	public updateFeature = async (filePath: string, fileText?: string) => {
 		const feature = fileText
-			? this.gherkinFeature.parseFeature(fileText, filePath)
-			: await this.gherkinFeature.loadFeature(filePath, false);
+			? this.gherkinFeature.parseFeature(fileText, filePath, { cwd: this.cwd, projectName: this.projectName })
+			: await this.gherkinFeature.loadFeature(filePath, false, { cwd: this.cwd, projectName: this.projectName });
 
 		const featureIdx = this.features.findIndex(f => this.hasSamePath(f.featureFile, filePath));
 		if (featureIdx >= 0) {

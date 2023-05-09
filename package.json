@@ -49,11 +49,6 @@
 						"default": "default",
 						"description": "Cucumber profile to use when running or debugging tests."
 					},
-					"cucumber-tsflow.cucumberPath": {
-						"type": "string",
-						"default": "",
-						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)"
-					},
 					"cucumber-tsflow.projectPath": {
 						"type": "string",
 						"default": "",

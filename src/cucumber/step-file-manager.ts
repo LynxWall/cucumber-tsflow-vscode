@@ -1,22 +1,25 @@
 import * as vscode from 'vscode';
 import CucumberConfig from './cucumber-config';
 import GherkinManager, { StepInfo, IMapFeaturesResult } from '../gherkin/gherkin-manager';
-import useCtvConfig from '../use-ctv-config';
 import { FeatureStepMatch, ParsedFeature } from '../types';
-import CtvConfig from '../ctv-config';
+import { TextDocument } from 'vscode';
+import { normalizePath } from '../utils';
+
+type CucumberProject = {
+	name: string;
+	path: string;
+	gherkin: GherkinManager;
+	currentStepText?: string;
+	findFeatureResults?: IMapFeaturesResult;
+};
 
 export default class StepFileManager {
-	private gherkin: GherkinManager;
-	private currentRootPath?: string;
-	private currentFileText: string = '';
-	private findFeatureResults?: IMapFeaturesResult;
-	private ctvConfig: CtvConfig;
 	private cucumberConfig: CucumberConfig;
 
+	private projects = new Array<CucumberProject>();
+
 	constructor() {
-		this.ctvConfig = useCtvConfig().getConfig();
 		this.cucumberConfig = new CucumberConfig();
-		this.gherkin = new GherkinManager();
 	}
 
 	/**
@@ -24,32 +27,30 @@ export default class StepFileManager {
 	 * @param fileText
 	 * @returns
 	 */
-	public getSteps = async (fileText: string): Promise<StepInfo[]> => {
-		if (this.ctvConfig.cucumberPath !== this.currentRootPath) {
-			await this.loadFeatures();
+	public getSteps = async (document: TextDocument): Promise<StepInfo[]> => {
+		const fsPath = normalizePath(document.uri.fsPath);
+		const project = this.projects.find(x => fsPath.startsWith(x.path));
+		if (project) {
+			const stepText = document.getText();
+			if (project.currentStepText !== stepText || !project.findFeatureResults) {
+				project.findFeatureResults = project.gherkin.mapFeaturesFromStepFile(stepText);
+				project.currentStepText = stepText;
+			}
+			return project.findFeatureResults.steps;
 		}
-		if (fileText !== this.currentFileText || !this.findFeatureResults) {
-			this.findFeatureResults = this.gherkin.mapFeaturesFromStepFile(fileText);
-			this.currentFileText = fileText;
-		}
-		return this.findFeatureResults.steps;
+		return new Array<StepInfo>();
 	};
 
 	public getParsedFeatures = async (): Promise<ParsedFeature[]> => {
-		if (this.ctvConfig.cucumberPath !== this.currentRootPath) {
-			await this.loadFeatures();
+		const parsedFeatures = new Array<ParsedFeature>();
+		for (let idx = 0; idx < this.projects.length; idx++) {
+			parsedFeatures.push(...this.projects[idx].gherkin.parsedFeatures);
 		}
-		return this.gherkin.parsedFeatures;
+		return parsedFeatures;
 	};
 
 	public getParsedFeature = async (uri: vscode.Uri): Promise<ParsedFeature | undefined> => {
-		let parsedFeature = this.gherkin.parsedFeatures.find((x: { featureFile: string }) => x.featureFile === uri.fsPath);
-		if (!parsedFeature) {
-			// might be a new feature file... reload the features
-			await this.loadFeatures();
-			parsedFeature = this.gherkin.parsedFeatures.find((x: { featureFile: string }) => x.featureFile === uri.fsPath);
-		}
-		return parsedFeature;
+		return (await this.getParsedFeatures()).find((x: { featureFile: string }) => x.featureFile === uri.fsPath);
 	};
 
 	/**
@@ -57,9 +58,10 @@ export default class StepFileManager {
 	 * @param stepText
 	 * @returns
 	 */
-	public getFeaturesAndScenarios = (stepText: string): Array<FeatureStepMatch> => {
-		if (this.findFeatureResults?.features) {
-			return this.findFeatureResults.features.getMatchingFeaturesAndScenarios(stepText);
+	public getFeaturesAndScenarios = (filePath: string, stepText: string): Array<FeatureStepMatch> => {
+		const project = this.projects.find(x => filePath.startsWith(x.path));
+		if (project && project.findFeatureResults?.features) {
+			return project.findFeatureResults.features.getMatchingFeaturesAndScenarios(stepText);
 		}
 		return new Array<FeatureStepMatch>();
 	};
@@ -70,12 +72,25 @@ export default class StepFileManager {
 	 * @param fileText
 	 */
 	public updateFeature = async (filePath: string, fileText?: string) => {
-		await this.gherkin.updateFeature(filePath, fileText);
+		const project = this.projects.find(x => filePath.startsWith(x.path));
+		if (project) {
+			await project.gherkin.updateFeature(filePath, fileText);
+		}
 	};
 
-	public loadFeatures = async (): Promise<void> => {
-		const config = await this.cucumberConfig.getConfig();
-		await this.gherkin.loadFeatures(config.paths);
-		this.currentRootPath = this.ctvConfig.cucumberPath;
+	public loadFeatures = async (cucumberRoot: string): Promise<void> => {
+		const config = await this.cucumberConfig.loadCucumberConfig(cucumberRoot);
+		let project = this.projects.find(x => x.path === cucumberRoot);
+		if (!project) {
+			const nameIdx = cucumberRoot.lastIndexOf('/');
+			const projectName = cucumberRoot.substring(nameIdx + 1);
+			project = {
+				name: projectName,
+				path: cucumberRoot,
+				gherkin: new GherkinManager(projectName, cucumberRoot)
+			} as CucumberProject;
+			this.projects.push(project);
+		}
+		await project.gherkin.loadFeatures(config.paths);
 	};
 }

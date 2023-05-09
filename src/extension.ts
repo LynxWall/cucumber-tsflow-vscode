@@ -14,15 +14,17 @@ import { TestFeatureStep } from './types';
 export const activate = async (context: vscode.ExtensionContext) => {
 	const ctvConfig = useCtvConfig().getConfig();
 	const cucumberTsFlow = useCucumberTsFlow();
-	const cucumbersettingsPath = ctvConfig.currentCucumberSettingsPath;
 
-	if (cucumbersettingsPath && cucumberTsFlow.checkCucumberTsFlow()) {
+	if (ctvConfig.projectPath && cucumberTsFlow.checkCucumberTsFlow()) {
 		// create a test controller
 		const testController = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber TsFlow VS Code');
 
 		// load test features
 		const stepFileManager = new StepFileManager();
-		await stepFileManager.loadFeatures();
+		const cucumberSettings = ctvConfig.allCucumberSettingsFromRoot;
+		for (let csIdx = 0; csIdx < cucumberSettings.length; csIdx++) {
+			await stepFileManager.loadFeatures(cucumberSettings[csIdx]);
+		}
 		const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
 
 		// We'll create the "run" type profile here, and give it the function to call.

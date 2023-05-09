@@ -4,34 +4,15 @@ import CtvConfig from '../ctv-config';
 import useCtvConfig from '../use-ctv-config';
 
 export default class CucumberConfig {
-	private tsFlowConfig?: ITsflowConfiguration;
-	private currRoot: string = '';
 	private ctvConfig: CtvConfig;
 
 	constructor() {
 		this.ctvConfig = useCtvConfig().getConfig();
 	}
 
-	public get currentRoot(): string {
-		return this.currRoot;
-	}
-
-	public getConfig = async (): Promise<ITsflowConfiguration> => {
-		if (!this.tsFlowConfig || this.currRoot !== this.ctvConfig.cucumberPath) {
-			await this.loadCucumberConfig();
-		}
-		return this.tsFlowConfig as ITsflowConfiguration;
-	};
-
-	public reset = () => {
-		this.tsFlowConfig = undefined;
-		this.currRoot = '';
-	};
-
-	private loadCucumberConfig = async () => {
-		this.currRoot = this.ctvConfig.cucumberPath as string;
+	public loadCucumberConfig = async (cucumberRoot: string) => {
 		const environment = {
-			cwd: this.currRoot,
+			cwd: cucumberRoot,
 			stdout: process.stdout,
 			stderr: process.stderr,
 			env: process.env,
@@ -55,6 +36,6 @@ export default class CucumberConfig {
 			},
 			environment
 		);
-		this.tsFlowConfig = configuration;
+		return configuration as ITsflowConfiguration;
 	};
 }

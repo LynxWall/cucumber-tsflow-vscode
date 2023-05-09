@@ -27,7 +27,7 @@ export class TestOutputScanner implements vscode.Disposable {
 
 	constructor(private readonly process: ChildProcessWithoutNullStreams) {
 		process.stdout.on('data', data => this.outputEventEmitter.fire(data));
-		//process.stderr.on('data', data => this.outputEventEmitter.fire(data));
+		process.stderr.on('data', data => this.outputEventEmitter.fire(data));
 		process.on('error', e => this.onErrorEmitter.fire(e.message));
 		process.on('close', code => {
 			if (code !== null) {

@@ -32,6 +32,7 @@ export type ParsedScenario = {
 	skippedViaTagFilter: boolean;
 	scenarioContext: ManagedScenarioContext | undefined;
 	args: string[] | undefined;
+	cwd: string;
 };
 
 export type ParsedScenarioOutline = {

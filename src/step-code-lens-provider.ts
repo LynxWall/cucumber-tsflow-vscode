@@ -15,12 +15,12 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 
 		const featureArgs = new Array<TestFeatureStep>();
 		try {
-			const steps = await this.stepFileManager.getSteps(document.getText());
+			const steps = await this.stepFileManager.getSteps(document);
 			for (let sIdx = 0; sIdx < steps.length; sIdx++) {
 				const step = steps[sIdx];
 				if (['given', 'when', 'then', 'and'].find(x => x === step.name)) {
 					const featureStepArgs = new Array<TestFeatureStep>();
-					const matchingFeatures = this.stepFileManager.getFeaturesAndScenarios(step.text);
+					const matchingFeatures = this.stepFileManager.getFeaturesAndScenarios(document.uri.fsPath, step.text);
 
 					for (let fIdx = 0; fIdx < matchingFeatures.length; fIdx++) {
 						const match = matchingFeatures[fIdx];
