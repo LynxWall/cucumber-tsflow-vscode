@@ -5,22 +5,12 @@ import * as messages from '@cucumber/messages';
 import { getJestCucumberConfiguration, Options } from './configuration';
 import { AstBuilder, GherkinClassicTokenMatcher, Parser, Dialect, dialects } from '@cucumber/gherkin/dist/src';
 import { ParsedFeature, ParsedScenario, ParsedStep, ParsedScenarioOutline } from '../types';
-import useCtvConfig from '../use-ctv-config';
-import CtvConfig from '../ctv-config';
 
 export default class GherkinFeature {
-	private ctvConfig: CtvConfig;
-	private cwd: string;
-
-	constructor() {
-		this.ctvConfig = useCtvConfig().getConfig();
-		this.cwd = this.ctvConfig.cucumberPath as string;
-	}
-
-	public loadFeature = async (featureFilePath: string, addCwd: boolean, options?: Options) => {
+	public loadFeature = async (featureFilePath: string, addCwd: boolean, options: Options) => {
 		try {
 			if (addCwd) {
-				featureFilePath = path.join(this.cwd, featureFilePath);
+				featureFilePath = path.join(options.cwd, featureFilePath);
 			}
 			const featureText: string = await fs.promises.readFile(featureFilePath, { encoding: 'utf8' });
 			return this.parseFeature(featureText, featureFilePath, options);
@@ -33,13 +23,13 @@ export default class GherkinFeature {
 		}
 	};
 
-	public loadFeatures = async (globPattern: string, options?: Options) => {
-		const featureFiles = await glob(globPattern, { cwd: this.cwd });
+	public loadFeatures = async (globPattern: string, options: Options) => {
+		const featureFiles = await glob(globPattern, { cwd: options.cwd });
 
 		return await Promise.all(featureFiles.map(featureFilePath => this.loadFeature(featureFilePath, true, options)));
 	};
 
-	public parseFeature = (featureText: string, featureFilePath: string, options?: Options): ParsedFeature => {
+	public parseFeature = (featureText: string, featureFilePath: string, options: Options): ParsedFeature => {
 		let ast: any;
 		options = getJestCucumberConfiguration(options);
 
@@ -60,8 +50,8 @@ export default class GherkinFeature {
 		return {
 			title: astFeature.name,
 			featureFile: featureFilePath,
-			scenarios: this.parseScenarios(astFeature),
-			scenarioOutlines: this.parseScenarioOutlines(astFeature),
+			scenarios: this.parseScenarios(astFeature, options.cwd),
+			scenarioOutlines: this.parseScenarioOutlines(astFeature, options.cwd),
 			tags: this.parseTags(astFeature),
 			options
 		} as ParsedFeature;
@@ -135,13 +125,14 @@ export default class GherkinFeature {
 		}
 	};
 
-	private parseScenario = (astScenario: any, astFeature: any) => {
+	private parseScenario = (astScenario: any, astFeature: any, cwd: string) => {
 		return {
 			title: astScenario.name,
 			steps: this.parseSteps(astScenario),
 			tags: [...this.parseTags(astFeature), ...this.parseTags(astScenario)],
 			lineNumber: astScenario.location.line,
-			scenarioContext: undefined
+			scenarioContext: undefined,
+			cwd: cwd
 		} as ParsedScenario;
 	};
 
@@ -217,7 +208,8 @@ export default class GherkinFeature {
 			title: this.getOutlineDynamicTitle(exampleTableRow, outlineScenario.title),
 			steps: this.parseScenarioOutlineExampleSteps(exampleTableRow, outlineScenario.steps),
 			tags: Array.from(new Set<string>([...outlineScenario.tags, ...exampleSetTags])),
-			exampleRow: exampleTableRow
+			exampleRow: exampleTableRow,
+			cwd: outlineScenario.cwd
 		} as ParsedScenario;
 	};
 
@@ -239,8 +231,8 @@ export default class GherkinFeature {
 		}, [] as ParsedScenario[]);
 	};
 
-	private parseScenarioOutline = (astScenarioOutline: any, astFeature: any) => {
-		const outlineScenario = this.parseScenario(astScenarioOutline.scenario, astFeature);
+	private parseScenarioOutline = (astScenarioOutline: any, astFeature: any, cwd: string) => {
+		const outlineScenario = this.parseScenario(astScenarioOutline.scenario, astFeature, cwd);
 
 		return {
 			title: outlineScenario.title,
@@ -252,24 +244,24 @@ export default class GherkinFeature {
 		} as ParsedScenarioOutline;
 	};
 
-	private parseScenarios = (astFeature: any) => {
+	private parseScenarios = (astFeature: any, cwd: string) => {
 		return astFeature.children
 			.filter((child: any) => {
 				const keywords = ['Scenario Outline', 'Scenario Template'];
 
 				return child.scenario && keywords.indexOf(child.scenario.keyword) === -1;
 			})
-			.map((astScenario: any) => this.parseScenario(astScenario.scenario, astFeature));
+			.map((astScenario: any) => this.parseScenario(astScenario.scenario, astFeature, cwd));
 	};
 
-	private parseScenarioOutlines = (astFeature: any) => {
+	private parseScenarioOutlines = (astFeature: any, cwd: string) => {
 		return astFeature.children
 			.filter((child: any) => {
 				const keywords = ['Scenario Outline', 'Scenario Template'];
 
 				return child.scenario && keywords.indexOf(child.scenario.keyword) !== -1;
 			})
-			.map((astScenarioOutline: any) => this.parseScenarioOutline(astScenarioOutline, astFeature));
+			.map((astScenarioOutline: any) => this.parseScenarioOutline(astScenarioOutline, astFeature, cwd));
 	};
 
 	private collapseBackgrounds = (astChildren: any[], backgrounds: any[]) => {

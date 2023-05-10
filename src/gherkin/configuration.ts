@@ -5,6 +5,8 @@ export type ErrorOptions = {
 };
 
 export type Options = {
+	cwd: string;
+	projectName: string;
 	loadRelativePath?: boolean;
 	tagFilter?: string;
 	errors?: ErrorOptions | boolean;
@@ -25,6 +27,8 @@ export const defaultErrorSettings = {
 };
 
 export const defaultConfiguration: Options = {
+	cwd: './',
+	projectName: '',
 	tagFilter: undefined,
 	scenarioNameTemplate: undefined,
 	errors: defaultErrorSettings

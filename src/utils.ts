@@ -72,3 +72,18 @@ export const matchRule = (str: string, rule: string) => {
 	var escapeRegex = (str: string) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
 	return new RegExp('^' + rule.split('*').map(escapeRegex).join('.*') + '$').test(str);
 };
+/**
+ * Helper used to convert Title text into kebab id
+ * @param str
+ */
+export const toKebabCase = (str: string): string => {
+	let result = str
+		.match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)
+		?.map(x => x.toLowerCase())
+		.join('-');
+
+	if (!result) {
+		result = str;
+	}
+	return result;
+};

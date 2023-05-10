@@ -682,7 +682,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/vscode@npm:^1.78.0":
+"@types/vscode@npm:^1.76.0":
   version: 1.78.0
   resolution: "@types/vscode@npm:1.78.0"
   checksum: b58423f3f5efdbad26c06b60749eaafb47c0f907d7b66dd6f5064257603ce5b08c4f0d243ce747e0bed19d36ce7ef9c68e122ded4ec35115282f2a444e95533a
@@ -1350,7 +1350,7 @@ __metadata:
     "@types/ramda": ^0.29.1
     "@types/semver": ^7.3.13
     "@types/verror": ~1.10.6
-    "@types/vscode": ^1.78.0
+    "@types/vscode": ^1.76.0
     "@typescript-eslint/eslint-plugin": ^5.59.2
     "@typescript-eslint/parser": ^5.59.2
     "@vscode/test-electron": ^2.3.0
@@ -1365,6 +1365,7 @@ __metadata:
     semver: ^7.5.0
     typescript: ~4.7.4
     verror: ~1.10.1
+    yaml: 2.2.1
   languageName: unknown
   linkType: soft
 
@@ -4298,6 +4299,13 @@ __metadata:
   version: 4.0.0
   resolution: "yallist@npm:4.0.0"
   checksum: 343617202af32df2a15a3be36a5a8c0c8545208f3d3dfbc6bb7c3e3b7e8c6f8e7485432e4f3b88da3031a6e20afa7c711eded32ddfb122896ac5d914e75848d5
+  languageName: node
+  linkType: hard
+
+"yaml@npm:2.2.1":
+  version: 2.2.1
+  resolution: "yaml@npm:2.2.1"
+  checksum: 84f68cbe462d5da4e7ded4a8bded949ffa912bc264472e5a684c3d45b22d8f73a3019963a32164023bdf3d83cfb6f5b58ff7b2b10ef5b717c630f40bd6369a23
   languageName: node
   linkType: hard
 

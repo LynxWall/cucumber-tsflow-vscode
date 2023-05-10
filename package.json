@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",
@@ -44,16 +44,6 @@
 						"default": "",
 						"description": "Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json')"
 					},
-					"cucumber-tsflow.profile": {
-						"type": "string",
-						"default": "default",
-						"description": "Cucumber profile to use when running or debugging tests."
-					},
-					"cucumber-tsflow.cucumberPath": {
-						"type": "string",
-						"default": "",
-						"description": "Absolute path to project directory where cucumber.json is found (e.g. /home/me/project/sub-folder/test)"
-					},
 					"cucumber-tsflow.projectPath": {
 						"type": "string",
 						"default": "",
@@ -77,21 +67,6 @@
 						"type": "boolean",
 						"default": false,
 						"description": "Disable Code Lens feature"
-					},
-					"cucumber-tsflow.stepsSelector": {
-						"type": "string",
-						"default": "**/{steps,step_definitions}/**/*.ts",
-						"description": "Glob pattern used to find step files in your workspace. The default supports multiple test projects in a workspace."
-					},
-					"cucumber-tsflow.featuresSelector": {
-						"type": "string",
-						"default": "**/features/**/*.feature",
-						"description": "Glob pattern used to find feature files in your workspace. The default supports multiple test projects in a workspace."
-					},
-					"cucumber-tsflow.maxFolderDepth": {
-						"type": "number",
-						"default": 10,
-						"description": "Max folder depth for your workspace. Used to search parent folders for closest matching Cucumber settings file for a step file"
 					},
 					"cucumber-tsflow.preserveEditorFocus": {
 						"type": "boolean",
@@ -136,6 +111,7 @@
 		"minimatch": "^8.0.4",
 		"ramda": "^0.29.0",
 		"semver": "^7.5.0",
-		"verror": "~1.10.1"
+		"verror": "~1.10.1",
+		"yaml": "2.2.1"
 	}
 }

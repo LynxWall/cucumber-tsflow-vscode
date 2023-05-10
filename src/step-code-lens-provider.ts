@@ -15,7 +15,11 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 
 		const featureArgs = new Array<TestFeatureStep>();
 		try {
-			const steps = await this.stepFileManager.getSteps(document.getText());
+			if (!this.stepFileManager.hasFeatures) {
+				await this.stepFileManager.loadFeatures();
+			}
+
+			const steps = await this.stepFileManager.getSteps(document);
 			for (let sIdx = 0; sIdx < steps.length; sIdx++) {
 				const step = steps[sIdx];
 				if (['given', 'when', 'then', 'and'].find(x => x === step.name)) {
@@ -39,14 +43,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 						codeLens.push(
 							new CodeLens(range, {
 								title: 'Run',
-								command: 'extension.runCucumber',
+								command: `cucumber.${this.stepFileManager.projectName}.runCucumber`,
 								arguments: [featureStepArgs, token]
 							})
 						);
 						codeLens.push(
 							new CodeLens(range, {
 								title: 'Debug',
-								command: 'extension.debugCucumber',
+								command: `cucumber.${this.stepFileManager.projectName}.debugCucumber`,
 								arguments: [featureStepArgs, token]
 							})
 						);
@@ -61,14 +65,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 				codeLens.push(
 					new CodeLens(range, {
 						title: 'RunAll',
-						command: 'extension.runCucumber',
+						command: `cucumber.${this.stepFileManager.projectName}.runCucumber`,
 						arguments: [featureArgs, token]
 					})
 				);
 				codeLens.push(
 					new CodeLens(range, {
 						title: 'DebugAll',
-						command: 'extension.debugCucumber',
+						command: `cucumber.${this.stepFileManager.projectName}.debugCucumber`,
 						arguments: [featureArgs, token]
 					})
 				);

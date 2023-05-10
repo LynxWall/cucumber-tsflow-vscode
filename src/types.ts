@@ -1,5 +1,15 @@
 import { ManagedScenarioContext } from '@lynxwall/cucumber-tsflow/lib/cucumber/managed-scenario-context';
 import { Options } from './gherkin/configuration';
+import GherkinManager, { IMapFeaturesResult } from './gherkin/gherkin-manager';
+
+export type CucumberProject = {
+	name: string;
+	path: string;
+	config: Record<string, any>;
+	gherkin: GherkinManager;
+	currentStepText?: string;
+	findFeatureResults?: IMapFeaturesResult;
+};
 
 export type StepFromStepDefinitions = {
 	stepMatcher: string | RegExp;
@@ -32,6 +42,7 @@ export type ParsedScenario = {
 	skippedViaTagFilter: boolean;
 	scenarioContext: ManagedScenarioContext | undefined;
 	args: string[] | undefined;
+	cwd: string;
 };
 
 export type ParsedScenarioOutline = {

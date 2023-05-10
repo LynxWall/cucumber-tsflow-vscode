@@ -6,14 +6,17 @@ const crlf = '\r\n';
 const forceCRLF = (str: string) => str.replace(/(?<!\r)\n/gm, '\r\n');
 
 export class TestOutputScanner implements vscode.Disposable {
-	protected outputEventEmitter = new vscode.EventEmitter<Buffer>();
+	protected outputStdoutEmitter = new vscode.EventEmitter<Buffer>();
+	protected outputStderrEmitter = new vscode.EventEmitter<Buffer>();
 	protected onCloseEmitter = new vscode.EventEmitter<number>();
 	protected onErrorEmitter = new vscode.EventEmitter<string>();
 
 	/**
 	 * Fired when output from the process comes in.
 	 */
-	public readonly onRunnerOutput = this.outputEventEmitter.event;
+	public readonly onRunnerStdout = this.outputStdoutEmitter.event;
+
+	public readonly onRunnerStderr = this.outputStderrEmitter.event;
 
 	/**
 	 * Fired when the process encounters an error.
@@ -26,8 +29,8 @@ export class TestOutputScanner implements vscode.Disposable {
 	public readonly onRunnerClose = this.onCloseEmitter.event;
 
 	constructor(private readonly process: ChildProcessWithoutNullStreams) {
-		process.stdout.on('data', data => this.outputEventEmitter.fire(data));
-		//process.stderr.on('data', data => this.outputEventEmitter.fire(data));
+		process.stdout.on('data', data => this.outputStdoutEmitter.fire(data));
+		process.stderr.on('data', data => this.outputStderrEmitter.fire(data));
 		process.on('error', e => this.onErrorEmitter.fire(e.message));
 		process.on('close', code => {
 			if (code !== null) {
@@ -54,15 +57,14 @@ export const scanTestOutput = async (
 	scanner: TestOutputScanner,
 	cancellation: vscode.CancellationToken
 ): Promise<void> => {
+	let errBuffer = Buffer.alloc(0);
 	let buffer = Buffer.from(`\r\n${styles.blue.open}Executing Scenario: ${testItem.label}\r\n${styles.blue.close}`);
 	const defaultAppend = (str: string) => task.appendOutput(str + crlf, undefined, testItem);
 	try {
-		if (cancellation.isCancellationRequested) {
-			return;
-		}
-
 		await new Promise<void>(resolve => {
 			cancellation.onCancellationRequested(() => {
+				defaultAppend('Cancelling test.');
+				task.skipped(testItem);
 				resolve();
 			});
 
@@ -71,10 +73,15 @@ export const scanTestOutput = async (
 				resolve();
 			});
 
-			scanner.onRunnerOutput(data => (buffer = Buffer.from([...buffer, ...data])));
+			scanner.onRunnerStdout(data => (buffer = Buffer.from([...buffer, ...data])));
+			scanner.onRunnerStderr(data => (errBuffer = Buffer.from([...errBuffer, ...data])));
 
 			scanner.onRunnerClose(code => {
 				task.appendOutput(forceCRLF(buffer.toString()), undefined, testItem);
+				const errData = errBuffer.toString();
+				if (!errData.includes('Debugger attached')) {
+					task.appendOutput(forceCRLF(errData), undefined, testItem);
+				}
 				switch (code) {
 					case 0:
 						defaultAppend(`${styles.green.open}${testItem.label}: Passed!${styles.green.close}`);
