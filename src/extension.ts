@@ -9,9 +9,37 @@ import CucumberTestFeatures from './cucumber/cucumber-test-features';
 import useCucumberTsFlow from './use-cucumber-tsflow';
 import { CucumberProject, TestFeatureStep } from './types';
 import { loadConfg } from './configuration/load-config';
-import path from 'path';
 import { toKebabCase } from './utils';
 import GherkinManager from './gherkin/gherkin-manager';
+import { sortBy, compose, toLower, prop } from 'ramda';
+
+const sortByName = sortBy<CucumberProject>(compose(toLower, prop('name')));
+
+const getMatchPaths = (profiles: any[], propName: string): string[] => {
+	return profiles.reduce((result, curr) => {
+		if (result.length === 0) {
+			return curr[propName];
+		} else {
+			return [...new Set([...result, ...curr[propName]])];
+		}
+	}, [] as string[]);
+};
+
+const getMatchPattern = (pattern: string, projectName: string) => {
+	if (pattern.startsWith('./') || pattern.startsWith('.\\')) {
+		pattern = pattern.substring(2);
+	} else if (pattern.startsWith('../') || pattern.startsWith('..\\')) {
+		pattern = pattern.substring(3);
+	}
+	return `**/${projectName}/${pattern}`;
+};
+
+const getDefaultProfile = (profileNames: string[]): string => {
+	if (profileNames.indexOf('default') >= 0) {
+		return 'default';
+	}
+	return profileNames[0];
+};
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -33,69 +61,62 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			});
 		}
 
-		for (let pIdx = 0; pIdx < projects.length; pIdx++) {
-			const project = projects[pIdx];
+		const sortedProjects = sortByName(projects);
+		for (let pIdx = 0; pIdx < sortedProjects.length; pIdx++) {
+			const project = sortedProjects[pIdx];
 
-			let profile = project.config.default;
-			if (!profile) {
-				profile = Object.values(project.config)[0];
-			}
+			const profileNames = Object.getOwnPropertyNames(project.config);
+			const defaultProfile = getDefaultProfile(profileNames);
 
-			const featureSelectors = profile.paths?.map((x: string) => path.join(project.path, x)) ?? [];
-			const stepSelectors = profile.require?.map((x: string) => path.join(project.path, x)) ?? [];
+			const profiles = Object.values(project.config);
+			const featurePaths = getMatchPaths(profiles, 'paths');
+			const stepPaths = getMatchPaths(profiles, 'require');
+
+			const featureSelectors: string[] = featurePaths.map((x: string) => getMatchPattern(x, project.name)) ?? [];
+			const stepSelectors: string[] = stepPaths.map((x: string) => getMatchPattern(x, project.name)) ?? [];
 
 			const projectName = `Cucumber - ${project.name}`;
 			const testController = vscode.tests.createTestController(toKebabCase(projectName), projectName);
 			const stepFileManager = new StepFileManager(project);
 			const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
 
-			// We'll create the "run" type profile here, and give it the function to call.
-			// You can also create debug and coverage profile types. The last `true` argument
-			// indicates that this should by the default "run" profile, in case there were
-			// multiple run profiles.
-			testController.createRunProfile(
-				'Run',
-				vscode.TestRunProfileKind.Run,
-				(request, token) => testFeatures.runTests(request, token),
-				true
-			);
+			for (let pnIdx = 0; pnIdx < profileNames.length; pnIdx++) {
+				const profileName = profileNames[pnIdx];
 
-			// e2eController.createRunProfile(
-			// 	'Run',
-			// 	vscode.TestRunProfileKind.Run,
-			// 	(request, token) => testFeatures.runTests(request, token),
-			// 	true
-			// );
-			testController.createRunProfile(
-				'Debug',
-				vscode.TestRunProfileKind.Debug,
-				(request, token) => testFeatures.runTests(request, token, true),
-				true
-			);
+				testController.createRunProfile(
+					`Run - ${profileName}`,
+					vscode.TestRunProfileKind.Run,
+					(request, token) => testFeatures.runTests(request, token, profileName),
+					profileName === defaultProfile
+				);
 
+				testController.createRunProfile(
+					`Debug - ${profileName}`,
+					vscode.TestRunProfileKind.Debug,
+					(request, token) => testFeatures.runTests(request, token, profileName, true),
+					profileName === defaultProfile
+				);
+			}
 			// Custom handler for loading tests. The "test" argument here is undefined,
 			// but if we supported lazy-loading child test then this could be called with
 			// the test whose children VS Code wanted to load.
 			testController.resolveHandler = async test => {
 				testController.items.replace(await testFeatures.loadTests());
 			};
-			// e2eController.resolveHandler = async test => {
-			// 	e2eController.items.replace(await testFeatures.loadTests());
-			// };
 
 			// Register a run command
 			let runCucumber = vscode.commands.registerCommand(
-				`extension.${project.name}.runCucumber`,
+				`cucumber.${project.name}.runCucumber`,
 				async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
-					await testFeatures.runCodeLenseTests(testFeatureSteps, token);
+					await testFeatures.runCodeLenseTests(testFeatureSteps, token, defaultProfile);
 				}
 			);
 
 			// register a debug command
 			let debugCucumber = vscode.commands.registerCommand(
-				`extension.${project.name}.debugCucumber`,
+				`cucumber.${project.name}.debugCucumber`,
 				async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
-					await testFeatures.runCodeLenseTests(testFeatureSteps, token, true);
+					await testFeatures.runCodeLenseTests(testFeatureSteps, token, defaultProfile, true);
 				}
 			);
 
@@ -104,7 +125,7 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			if (!ctvConfig.disableCodeLens) {
 				const docSelectors: vscode.DocumentFilter[] = stepSelectors.map((x: string) => {
 					return { pattern: x } as vscode.DocumentFilter;
-				}); // [{ pattern: ctvConfig.stepsSelector }];
+				});
 				const codeLensProviderDisposable = vscode.languages.registerCodeLensProvider(docSelectors, codeLensProvider);
 				context.subscriptions.push(codeLensProviderDisposable);
 			}
@@ -123,18 +144,8 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			context.subscriptions.push(runCucumber);
 			context.subscriptions.push(debugCucumber);
 		}
-
-		// // Initialize testFeatures instance
-		// const e2eController = vscode.tests.createTestController('cucumber-tsflow-e2e', 'Cucumber e2e');
-		// const testController = vscode.tests.createTestController('cucumber-tsflow-vscode', 'Cucumber test');
-
-		// const stepFileManager = new StepFileManager();
-		// const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
-
 		// log the fact that the extension is active
 		ctvConfig.cucumberOutput.appendLine('Cucumber TsFlow for VS Code is now active!');
-	} else {
-		ctvConfig.cucumberOutput.appendLine(`Unable to find cucumber settings with "${ctvConfig.profile}" profile`);
 	}
 };
 

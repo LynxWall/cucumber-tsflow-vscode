@@ -4,6 +4,7 @@ import { isWindows, pushMany } from '../utils';
 import { spawn } from 'child_process';
 import CtvConfig from '../ctv-config';
 import { TestOutputScanner } from './test-output-scanner';
+import { ParsedScenario } from '../types';
 
 const DEBUG_CONFIG_NAME = 'Attach Cucumber-tsflow Debug';
 
@@ -14,19 +15,19 @@ export class CucumberTestRunner {
 		this.ctvConfig = useCtvConfig().getConfig();
 	}
 
-	public async run(filePath: string, lineNumber: number, cwd: string, testArgs: string[] | undefined) {
+	public async run(filePath: string, lineNumber: number, profileName: string, scenario: ParsedScenario) {
 		// if we're running on windows and the path starts
 		// with a leading slash we need to strip
 		// off the leading slash
 		if (isWindows() && filePath.startsWith('/')) {
 			filePath = filePath.substring(1);
 		}
-		const args = this.getCommandArgs(`${filePath}:${lineNumber}`);
-		if (testArgs) {
-			args.push(...testArgs);
+		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
+		if (scenario.args) {
+			args.push(...scenario.args);
 		}
 		const cp = spawn(this.ctvConfig.runCommand(), args, {
-			cwd: cwd,
+			cwd: scenario.cwd,
 			shell: true,
 			stdio: 'pipe',
 			// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -35,19 +36,19 @@ export class CucumberTestRunner {
 		return new TestOutputScanner(cp);
 	}
 
-	public async debug(filePath: string, lineNumber: number, cwd: string, testArgs: string[] | undefined) {
+	public async debug(filePath: string, lineNumber: number, profileName: string, scenario: ParsedScenario) {
 		// if we're running on windows and the path starts
 		// with a leading slash we need to strip
 		// off the leading slash
 		if (isWindows() && filePath.startsWith('/')) {
 			filePath = filePath.substring(1);
 		}
-		const args = this.getCommandArgs(`${filePath}:${lineNumber}`);
-		if (testArgs) {
-			args.push(...testArgs);
+		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
+		if (scenario.args) {
+			args.push(...scenario.args);
 		}
 		const cp = spawn(this.ctvConfig.runCommand(true), args, {
-			cwd: cwd,
+			cwd: scenario.cwd,
 			shell: true,
 			stdio: 'pipe',
 			// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -85,8 +86,12 @@ export class CucumberTestRunner {
 	 * @param scenario scenario to debug
 	 * @returns
 	 */
-	private getCommandArgs = (scenario: string): string[] => {
+	private getCommandArgs = (scenario: string, profileName: string): string[] => {
 		const args: string[] = [];
+
+		// add the profile
+		args.push('-p');
+		args.push(profileName);
 
 		const runtimeArgs = this.ctvConfig.runtimeArgs();
 		pushMany(args, runtimeArgs);

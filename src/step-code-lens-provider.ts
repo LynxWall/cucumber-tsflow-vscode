@@ -1,16 +1,12 @@
 import * as vscode from 'vscode';
 import { CodeLens, CodeLensProvider, Position, Range, TextDocument } from 'vscode';
-import CtvConfig from './ctv-config';
 import StepFileManager from './cucumber/step-file-manager';
 import { TestFeatureStep } from './types';
-import useCtvConfig from './use-ctv-config';
 
 export default class StepCodeLensProvider implements CodeLensProvider {
 	private stepFileManager: StepFileManager;
-	private ctvConfig: CtvConfig;
 
 	constructor(stepFileManager: StepFileManager) {
-		this.ctvConfig = useCtvConfig().getConfig();
 		this.stepFileManager = stepFileManager;
 	}
 
@@ -28,7 +24,7 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 				const step = steps[sIdx];
 				if (['given', 'when', 'then', 'and'].find(x => x === step.name)) {
 					const featureStepArgs = new Array<TestFeatureStep>();
-					const matchingFeatures = this.stepFileManager.getFeaturesAndScenarios(document.uri.fsPath, step.text);
+					const matchingFeatures = this.stepFileManager.getFeaturesAndScenarios(step.text);
 
 					for (let fIdx = 0; fIdx < matchingFeatures.length; fIdx++) {
 						const match = matchingFeatures[fIdx];
@@ -47,14 +43,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 						codeLens.push(
 							new CodeLens(range, {
 								title: 'Run',
-								command: 'extension.runCucumber',
+								command: `cucumber.${this.stepFileManager.projectName}.runCucumber`,
 								arguments: [featureStepArgs, token]
 							})
 						);
 						codeLens.push(
 							new CodeLens(range, {
 								title: 'Debug',
-								command: 'extension.debugCucumber',
+								command: `cucumber.${this.stepFileManager.projectName}.debugCucumber`,
 								arguments: [featureStepArgs, token]
 							})
 						);
@@ -69,14 +65,14 @@ export default class StepCodeLensProvider implements CodeLensProvider {
 				codeLens.push(
 					new CodeLens(range, {
 						title: 'RunAll',
-						command: 'extension.runCucumber',
+						command: `cucumber.${this.stepFileManager.projectName}.runCucumber`,
 						arguments: [featureArgs, token]
 					})
 				);
 				codeLens.push(
 					new CodeLens(range, {
 						title: 'DebugAll',
-						command: 'extension.debugCucumber',
+						command: `cucumber.${this.stepFileManager.projectName}.debugCucumber`,
 						arguments: [featureArgs, token]
 					})
 				);

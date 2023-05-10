@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.1.0]
+
+### Added
+
+- Group cucumber configurations (projects) into separate Test Run profiles.
+- Support for multiple profiles in a cucumber configuration.
+
+### Update
+
+- Removed configuration settings that are no longer needed with refactor to load tests based on information found in cucumber configuration files.
+
+### Fixed
+
+- 2.0.x release did not support a workspace with different types of projects, such as dotnet and node. This update will look for node projects and associated cucumber configurations regardless of other projects in the workspace.
+
 ## [2.0.1]
 
 ### Update
