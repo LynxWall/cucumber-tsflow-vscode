@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.1.1]
+
+### Fixed
+
+- Removed unnecessary update calls when a step file is modified.
+- Handle glob patterns in cucumber paths or require settings.
+
 ## [2.1.0]
 
 ### Added

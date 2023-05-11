@@ -26,9 +26,14 @@ const getMatchPaths = (profiles: any[], propName: string): string[] => {
 };
 
 const getMatchPattern = (pattern: string, projectName: string) => {
+	// check for relative paths
 	if (pattern.startsWith('./') || pattern.startsWith('.\\')) {
 		pattern = pattern.substring(2);
 	} else if (pattern.startsWith('../') || pattern.startsWith('..\\')) {
+		pattern = pattern.substring(3);
+	}
+	// if starting with glob strip it off since we'll add it back in
+	if (pattern.startsWith('**/') || pattern.startsWith('**\\')) {
 		pattern = pattern.substring(3);
 	}
 	return `**/${projectName}/${pattern}`;
@@ -80,6 +85,11 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			const stepFileManager = new StepFileManager(project);
 			const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
 
+			// Custom handler for loading tests.
+			testController.resolveHandler = async () => {
+				testController.items.replace(await testFeatures.loadTests());
+			};
+
 			for (let pnIdx = 0; pnIdx < profileNames.length; pnIdx++) {
 				const profileName = profileNames[pnIdx];
 
@@ -97,12 +107,6 @@ export const activate = async (context: vscode.ExtensionContext) => {
 					profileName === defaultProfile
 				);
 			}
-			// Custom handler for loading tests. The "test" argument here is undefined,
-			// but if we supported lazy-loading child test then this could be called with
-			// the test whose children VS Code wanted to load.
-			testController.resolveHandler = async test => {
-				testController.items.replace(await testFeatures.loadTests());
-			};
 
 			// Register a run command
 			let runCucumber = vscode.commands.registerCommand(
@@ -132,10 +136,8 @@ export const activate = async (context: vscode.ExtensionContext) => {
 
 			// handle saves to a feature file. Keeps the gherkin feature data up to date
 			vscode.workspace.onDidSaveTextDocument(async e => {
-				if (featureSelectors.map((selector: string) => minimatch(e.uri.path, selector))) {
+				if (featureSelectors.some((selector: string) => minimatch(e.uri.path, selector))) {
 					await stepFileManager.updateFeature(e.uri.fsPath);
-					await testFeatures.updateTests(e.uri);
-				} else if (stepSelectors.map((selector: string) => minimatch(e.uri.path, selector))) {
 					await testFeatures.updateTests(e.uri);
 				}
 			});
