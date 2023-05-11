@@ -139,9 +139,14 @@ export default class CucumberTestFeatures {
 
 		// save the current file
 		const editor = vscode.window.activeTextEditor;
-		if (editor) {
+		if (editor && editor.document.isDirty) {
 			await editor.document.save();
 		}
+		// make sure tests are loaded
+		if (this.testItems.length === 0) {
+			await this.loadTests();
+		}
+
 		// now we can execute
 		await Promise.all(
 			testFeatureSteps.map(async testFeatureStep => {
