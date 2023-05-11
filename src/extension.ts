@@ -7,7 +7,7 @@ import useCtvConfig from './use-ctv-config';
 import StepFileManager from './cucumber/step-file-manager';
 import CucumberTestFeatures from './cucumber/cucumber-test-features';
 import useCucumberTsFlow from './use-cucumber-tsflow';
-import { CucumberProject, TestFeatureStep } from './types';
+import { CucumberProject, CucumberProfile, TestFeatureStep } from './types';
 import { loadConfg } from './configuration/load-config';
 import { toKebabCase } from './utils';
 import GherkinManager from './gherkin/gherkin-manager';
@@ -81,7 +81,8 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			const stepSelectors: string[] = stepPaths.map((x: string) => getMatchPattern(x, project.name)) ?? [];
 
 			const projectName = `Cucumber - ${project.name}`;
-			const testController = vscode.tests.createTestController(toKebabCase(projectName), projectName);
+			const controllerId = toKebabCase(projectName);
+			const testController = vscode.tests.createTestController(controllerId, projectName);
 			const stepFileManager = new StepFileManager(project);
 			const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
 
@@ -90,29 +91,37 @@ export const activate = async (context: vscode.ExtensionContext) => {
 				testController.items.replace(await testFeatures.loadTests());
 			};
 
+			const cucumberProfiles = new Array<CucumberProfile>();
 			for (let pnIdx = 0; pnIdx < profileNames.length; pnIdx++) {
 				const profileName = profileNames[pnIdx];
 
-				testController.createRunProfile(
-					`Run - ${profileName}`,
+				const runLabel = `Run - ${profileName}`;
+				const runProfile = testController.createRunProfile(
+					runLabel,
 					vscode.TestRunProfileKind.Run,
 					(request, token) => testFeatures.runTests(request, token, profileName),
 					profileName === defaultProfile
 				);
+				cucumberProfiles.push({ controllerId: controllerId, profileLabel: runLabel, profile: profileName });
 
-				testController.createRunProfile(
-					`Debug - ${profileName}`,
+				const debugLabel = `Debug - ${profileName}`;
+				const debugProfile = testController.createRunProfile(
+					debugLabel,
 					vscode.TestRunProfileKind.Debug,
 					(request, token) => testFeatures.runTests(request, token, profileName, true),
 					profileName === defaultProfile
 				);
+				cucumberProfiles.push({ controllerId: controllerId, profileLabel: debugLabel, profile: profileName });
+
+				context.subscriptions.push(runProfile);
+				context.subscriptions.push(debugProfile);
 			}
 
 			// Register a run command
 			let runCucumber = vscode.commands.registerCommand(
 				`cucumber.${project.name}.runCucumber`,
 				async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
-					await testFeatures.runCodeLenseTests(testFeatureSteps, token, defaultProfile);
+					await testFeatures.runCodeLenseTests(testFeatureSteps, token, cucumberProfiles, defaultProfile);
 				}
 			);
 
@@ -120,7 +129,7 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			let debugCucumber = vscode.commands.registerCommand(
 				`cucumber.${project.name}.debugCucumber`,
 				async (testFeatureSteps: Array<TestFeatureStep>, token: vscode.CancellationToken) => {
-					await testFeatures.runCodeLenseTests(testFeatureSteps, token, defaultProfile, true);
+					await testFeatures.runCodeLenseTests(testFeatureSteps, token, cucumberProfiles, defaultProfile, true);
 				}
 			);
 

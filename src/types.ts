@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { ManagedScenarioContext } from '@lynxwall/cucumber-tsflow/lib/cucumber/managed-scenario-context';
 import { Options } from './gherkin/configuration';
 import GherkinManager, { IMapFeaturesResult } from './gherkin/gherkin-manager';
@@ -9,6 +10,12 @@ export type CucumberProject = {
 	gherkin: GherkinManager;
 	currentStepText?: string;
 	findFeatureResults?: IMapFeaturesResult;
+};
+
+export type CucumberProfile = {
+	controllerId: string;
+	profileLabel: string;
+	profile: string;
 };
 
 export type StepFromStepDefinitions = {
