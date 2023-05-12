@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.2.0]
+
+### Update
+
+- Changed Code Lens commands to use the current Test Profile that's selected in the Test Explorer. If a Test Profile is not selected then the `default` or first profile found in the associated cucumber configuration file will be used.
+- Removed the spawning of multiple scenario tests in parallel. This was causing timeout issues with tests that are time sensitive. With this change, executing all tests in a feature or project will execute them one at a time. If needed, you can cancel execution from the Test Explorer commands.
+- Updated vscode engine requirement to 1.78.0 (April 2023). This version of vscode adds a command to return currently selected Test Explorer profiles, which allows the execution of code lens commands to use the selected Test Profile.
+
 ## [2.1.1]
 
 ### Fixed

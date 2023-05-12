@@ -1,6 +1,6 @@
 # Cucumber TsFlow for VS Code
 
-This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v6.0.2** or greater in VS Code.
+This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v6.0.2** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.78.0** or greater.
 
 ## Features
 
@@ -8,21 +8,20 @@ The latest release of this extension provides both Test Explorer and Code Lens s
 
 The following features have been implemented:
 
-- **Support for multiple cucumber-tsflow test projects** - This extension will look for all cucumber configuration files and create separate run/debug profiles for each configuration that it finds. When a configuration has multiple profiles the Test Explorer will choose the `default` profile as the default. If a `default` profile is not found the first profile found will become the default. 
+- **Support for multiple cucumber-tsflow test projects** - This extension will look for all cucumber configuration files and create separate run/debug profiles for each profile configuration that it finds. When a configuration has multiple profiles the Test Explorer will choose the `default` or first profile found in the associated cucumber configuration file. 
 
-- **Ability to choose a default profile** - The Test Explorer provides an option to select a default profile to use when running tests. The following screenshot shows the menu option provided to choose a default profile:
+- **Ability to choose a default profile** - The Test Explorer provides an option to select a default profile that is used when running tests. The following screenshot shows the menu option provided to choose a default profile:
   ![PickAProfile](images/SelectDefaultProfile.png)
 
   When ***Select Default Profile*** is clicked the following dialog opens:
 
   ![PickAProfile](images/PickAProfile.png)
   
-
-  **NOTE:** If multiple profiles are chosen for the same project your tests will be executed for each profile, which may not be desired. As a result, you should only have one default per project.
-
+  **NOTE:** If multiple profiles are chosen for the same project your tests will be executed for each profile, which may not be desired.
+  
 - **Code Lens support** - Adds Run and Debug commands to each Given, When, Then step found in a Cucumber step file. In addition, RunAll and DebugAll commands are added to classes in a step file that are annotated with a @binding decorator.
 
-  **NOTE**: Current Code Lens support will always use the `default` profile or the first profile found if a `default` profile does not exist. A future release will provide support for the Code Lens to use selected default profile when changed in the Test Explorer.
+  **NOTE**: Code Lens support will use the first (Default) profile selected for each project in the Test Explorer, shown above. If a (Default) profile isn't found it will use the cucumber `default` profile or the first profile found in the associated cucumber configuration file.
 
 The following animation shows multiple projects with multiple profiles in each project (cucumber configuration). In addition, the animation demonstrates debugging one of the steps from the Test Explorer.
 
@@ -36,8 +35,8 @@ This extension **does not** add Code Lens actions to cucumber-tsflow hooks. Howe
 
 ### Additional Features
 
-- **Support for "multi-root" or "monorepo" projects** - When  a workspace with .feature files is loaded this extension will search for the first node_modules folder that contains cucumber-tsflow. From there, it will look for all cucumber configuration files and initialize a new test profile in the Test Explorer for each configuration found.
-- **Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v9.1.2/docs/configuration.md) profiles to execute tests in cucumber-tsflow** - You can specify the profile to use in your tests through VS Code settings. The default configuration uses the `default` profile, or first one found if `default` isn't defined, in your cucumber configuration.
+- **Support for "multi-root" or "monorepo" projects** - When  a workspace with ***.feature*** files is loaded this extension will search for the first node_modules folder that contains cucumber-tsflow. From there, it will look for all cucumber configuration files and initialize a new test profile in the Test Explorer for each configuration found.
+- **Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v9.1.2/docs/configuration.md) profiles to execute tests in cucumber-tsflow** - You can specify the profile to use in your tests through VS Code Test Explorer settings. The default configuration uses the `default` profile, or first one found if `default` isn't defined in your cucumber configuration.
 
 ## Future Releases
 
@@ -47,7 +46,10 @@ This first release focuses on providing run/debug support in step files using Co
 
 ## Requirements
 
-This extension requires [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **6.0.2** or higher.
+This extension requires the following:
+
+- [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **6.0.2** or higher.
+- [vscode ![](images/external-link-16.png)](https://code.visualstudio.com/) version **1.78.0** or higher.
 
 ## Limitations
 
