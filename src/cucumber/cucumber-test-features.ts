@@ -2,7 +2,7 @@ import { TestItem } from 'vscode';
 import { CucumberTestRunner } from './cucumber-test-runner';
 import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
-import { ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
+import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
 import { normalizePath, toKebabCase } from '../utils';
 import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
@@ -132,6 +132,7 @@ export default class CucumberTestFeatures {
 	public async runCodeLenseTests(
 		testFeatureSteps: Array<TestFeatureStep>,
 		cancellationToken: vscode.CancellationToken,
+		cucumberProfiles: Array<CucumberProfile>,
 		profileName: string,
 		debug: boolean = false
 	) {
@@ -145,6 +146,26 @@ export default class CucumberTestFeatures {
 		// make sure tests are loaded
 		if (this.testItems.length === 0) {
 			await this.loadTests();
+		}
+
+		// new command added in vsCode 1.78
+		const selectedProfiles: [{ controllerId: string; label: string; kind: number }] =
+			await vscode.commands.executeCommand('testing.getSelectedProfiles');
+
+		let profile: string | undefined = undefined;
+		for (let cpIdx = 0; cpIdx < cucumberProfiles.length; cpIdx++) {
+			for (let spIdx = 0; spIdx < selectedProfiles.length; spIdx++) {
+				if (
+					selectedProfiles[spIdx].controllerId === cucumberProfiles[cpIdx].controllerId &&
+					selectedProfiles[spIdx].label === cucumberProfiles[cpIdx].profileLabel
+				) {
+					profile = cucumberProfiles[cpIdx].profile;
+					break;
+				}
+			}
+			if (profile) {
+				break;
+			}
 		}
 
 		// now we can execute
@@ -171,7 +192,7 @@ export default class CucumberTestFeatures {
 		);
 		if (include.length > 0) {
 			const request = new vscode.TestRunRequest(include);
-			await this.runTests(request, cancellationToken, profileName, debug, true);
+			await this.runTests(request, cancellationToken, profile ?? profileName, debug, true);
 		}
 	}
 
@@ -194,15 +215,9 @@ export default class CucumberTestFeatures {
 
 		if (request.include) {
 			const sortedItems = sortByTestLabel(request.include);
-			if (!debug && codeLense) {
-				await Promise.all(
-					sortedItems.map(testItem => this.runTest(testItem, request, run, cancellationToken, profileName, debug))
-				);
-			} else {
-				const itemsLen = sortedItems.length;
-				for (let idx = 0; idx < itemsLen; idx++) {
-					await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
-				}
+			const itemsLen = sortedItems.length;
+			for (let idx = 0; idx < itemsLen; idx++) {
+				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
 			}
 		} else if (this.testItems) {
 			const sortedItems = sortByTestLabel(this.testItems);
@@ -279,16 +294,9 @@ export default class CucumberTestFeatures {
 	) {
 		if (testItem.children && testItem.children.size > 0) {
 			const children = this.getChildNodes(testItem.children);
-			const hasScenario = children.length > 0 && this.scenarioData.get(children[0]) !== undefined;
 			const sortedChildren = sortByTestLabel(children);
-			if (debug || hasScenario === false) {
-				for (let idx = 0; idx < sortedChildren.length; idx++) {
-					await this.testRunner(sortedChildren[idx], run, cancellationToken, profileName, debug);
-				}
-			} else {
-				await Promise.all(
-					sortedChildren.map(childNode => this.testRunner(childNode, run, cancellationToken, profileName, debug))
-				);
+			for (let idx = 0; idx < sortedChildren.length; idx++) {
+				await this.testRunner(sortedChildren[idx], run, cancellationToken, profileName, debug);
 			}
 		} else {
 			const scenario = this.scenarioData.get(testItem);
