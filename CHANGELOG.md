@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.2.1]
+
+### Fixed
+
+- Support for Isolated node_modules in pnpm monorepos. Updated the projectPath configuration parameter to work with absolute or relative paths. Fixed logic used to find the root installation of cucumber-tsflow.
+
 ## [2.2.0]
 
 ### Update

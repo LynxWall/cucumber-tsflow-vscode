@@ -36,6 +36,7 @@ This extension **does not** add Code Lens actions to cucumber-tsflow hooks. Howe
 ### Additional Features
 
 - **Support for "multi-root" or "monorepo" projects** - When  a workspace with ***.feature*** files is loaded this extension will search for the first node_modules folder that contains cucumber-tsflow. From there, it will look for all cucumber configuration files and initialize a new test profile in the Test Explorer for each configuration found.
+  **NOTE:** With **Isolated** **node_modules** used by pnpm or other package managers configured to use isolated node_modules, **cucumber-tsflow** should be installed in the workspace root project. 
 - **Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v9.1.2/docs/configuration.md) profiles to execute tests in cucumber-tsflow** - You can specify the profile to use in your tests through VS Code Test Explorer settings. The default configuration uses the `default` profile, or first one found if `default` isn't defined in your cucumber configuration.
 
 ## Future Releases
@@ -70,7 +71,7 @@ This extension contributes the following settings:
 | Setting                   | Type    | Default                               | Description                                                  |
 | ------------------------- | ------- | ------------------------------------- | ------------------------------------------------------------ |
 | `configFile`              | string  |                                       | Cucumber config file (relative to cucumber-tsflow.projectPath e.g. './test/cucumber.json') |
-| `projectPath`             | string  |                                       | Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder) |
+| `projectPath`             | string  |                                       | Absolute path, or relative path starting with './' from workspace root, to the project directory where packages.json and node_modules are found (e.g. /home/me/project/web/sub-folder or ./web/sub-folder) |
 | `runOptions`              | array   |                                       | Add [CLI Options ![](images/external-link-16.png)](https://github.com/LynxWall/cucumber-js-tsflow#new-configuration-options) to the Cucumber-tsflow Command. (e.g. ['--backtrace', 'true']) |
 | `debugOptions`            | object  |                                       | Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] }) |
 | `disableCodeLens` | boolean | false | Disable Code Lens feature |
