@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "2.2.0",
+	"version": "2.2.1",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",
@@ -47,7 +47,7 @@
 					"cucumber-tsflow.projectPath": {
 						"type": "string",
 						"default": "",
-						"description": "Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)"
+						"description": "Absolute path, or relative path starting with './' from workspace root, to the project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)"
 					},
 					"cucumber-tsflow.runOptions": {
 						"type": "array",

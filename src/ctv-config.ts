@@ -23,10 +23,17 @@ export default class CtvConfig {
 	}
 
 	/**
-	 * Absolute path to project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)
+	 * Absolute path, or relative path starting with './' from workspace root, to the project directory where packages.json and node_modules are found (e.g. /home/me/project/sub-folder)
 	 */
 	public get projectPath(): string | undefined {
-		return this.getStringSetting('cucumber-tsflow.projectPath') ?? this.currentWorkspaceRootPath;
+		const projectPath = this.getStringSetting('cucumber-tsflow.projectPath');
+		if (!projectPath) {
+			return this.currentWorkspaceRootPath;
+		} else if (projectPath.startsWith('./') && vscode.workspace.workspaceFolders) {
+			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			return path.join(wsRoot, projectPath);
+		}
+		return projectPath;
 	}
 
 	/**
@@ -171,7 +178,13 @@ export default class CtvConfig {
 			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
 			const lynxwallFiles = globSync('**/node_modules/@lynxwall/', { cwd: wsRoot });
 			if (lynxwallFiles.length > 0) {
-				const normPath = normalizePath(lynxwallFiles[0]);
+				const rootNode =
+					lynxwallFiles.length === 1
+						? lynxwallFiles[0]
+						: lynxwallFiles.reduce((a, b) => {
+								return a.length < b.length ? a : b;
+						  });
+				const normPath = normalizePath(rootNode);
 				const nodeRoot = normPath.replace('node_modules/@lynxwall', '');
 				this.workspaceRootPath = path.join(wsRoot, nodeRoot);
 			}
