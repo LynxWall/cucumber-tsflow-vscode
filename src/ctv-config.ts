@@ -151,12 +151,12 @@ export default class CtvConfig {
 	}
 
 	/**
-	 * Helper used find all cucumber setingss files, starting from workspace root.
+	 * Helper used find all cucumber setings files, starting from workspace root.
 	 */
 	public get allCucumberSettingsFromRoot(): Array<string> {
 		const settingsPaths = new Array<string>();
 		if (this.projectPath) {
-			const cucumberFiles = globSync('**/cucumber.*', { cwd: this.projectPath });
+			const cucumberFiles = globSync('**/cucumber.{js,cjs,mjs,json,yaml,yml}', { cwd: this.projectPath });
 			for (let idx = 0; idx < cucumberFiles.length; idx++) {
 				const cucumberFile = cucumberFiles[idx];
 				if (cucumberFile.indexOf('node_modules') < 0) {
