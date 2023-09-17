@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.2.2]
+
+### Fixed
+
+- Glob pattern used to look for cucumber config files. Original pattern was finding non config files like cucumber.svg that would cause exceptions attempting to load.
+
 ## [2.2.1]
 
 ### Fixed
