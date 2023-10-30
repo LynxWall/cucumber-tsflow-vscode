@@ -10,7 +10,7 @@ const isCucumberTsFlowInstalled = (ctvConfig: CtvConfig): boolean => {
 };
 
 const useCucumberTsFlow = () => {
-	const minCucumberTsFlowVer = '6.0.2';
+	const minCucumberTsFlowVer = '6.2.0';
 
 	const checkCucumberTsFlow = (): boolean => {
 		const ctvConfig = useCtvConfig().getConfig();
@@ -27,6 +27,9 @@ const useCucumberTsFlow = () => {
 				return true;
 			} else {
 				ctvConfig.cucumberOutput.appendLine(`Current version of cucumber-tsflow is: \"${currentVersion}\"`);
+				ctvConfig.cucumberOutput.appendLine(
+					`Cucmber TsFlow for VS Code requires cucumber-tsflow version \"${minCucumberTsFlowVer}\" or higher.`
+				);
 			}
 		} else {
 			ctvConfig.cucumberOutput.appendLine(
