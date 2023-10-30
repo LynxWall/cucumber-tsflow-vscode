@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [2.3.0]
+
+### Update
+
+- Error messages related to @lynxwall/cucumber-tsflow exit codes. Updated to support new exit codes.
+- Now depends on version 2.6.0 or higher of cucumber-tsflow.
+
 ## [2.2.2]
 
 ### Fixed

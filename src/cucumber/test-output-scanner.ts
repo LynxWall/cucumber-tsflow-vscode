@@ -89,11 +89,17 @@ export const scanTestOutput = async (
 						break;
 					case 1:
 						defaultAppend(
+							`${styles.red.open}${testItem.label}: Bad configuration or unhandled exception in test runner.${styles.red.close}`
+						);
+						task.failed(testItem, new vscode.TestMessage(`${testItem.label}: Failed!`));
+						break;
+					case 2:
+						defaultAppend(
 							`${styles.yellowBright.open}${testItem.label}: Has pending, skipped or unknown tests.${styles.yellowBright.close}`
 						);
 						task.skipped(testItem);
 						break;
-					case 2:
+					case 3:
 						defaultAppend(`${styles.red.open}${testItem.label}: Failed!${styles.red.close}`);
 						task.failed(testItem, new vscode.TestMessage(`${testItem.label}: Failed!`));
 						break;

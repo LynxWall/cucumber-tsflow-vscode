@@ -3,7 +3,7 @@
 	"displayName": "Cucumber TsFlow for VS Code",
 	"description": "Provides Run and Debug support in Step files for cucumber-tsflow",
 	"icon": "images/CucumberTsFlowSmall.png",
-	"version": "2.2.2",
+	"version": "2.3.0",
 	"publisher": "lynxwall",
 	"license": "MIT",
 	"homepage": "https://github.com/LynxWall/cucumber-tsflow-vscode/blob/main/README.md",
@@ -94,7 +94,6 @@
 		"@types/node": "^18.16.5",
 		"@types/ramda": "^0.29.1",
 		"@types/semver": "^7.3.13",
-		"@types/verror": "~1.10.6",
 		"@types/vscode": "^1.76.0",
 		"@typescript-eslint/eslint-plugin": "^5.59.2",
 		"@typescript-eslint/parser": "^5.59.2",
@@ -111,7 +110,6 @@
 		"minimatch": "^8.0.4",
 		"ramda": "^0.29.0",
 		"semver": "^7.5.0",
-		"verror": "~1.10.1",
 		"yaml": "2.2.1"
 	}
 }
