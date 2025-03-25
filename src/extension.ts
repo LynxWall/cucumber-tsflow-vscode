@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import minimatch from 'minimatch';
+import { minimatch } from 'minimatch';
 import StepCodeLensProvider from './step-code-lens-provider';
 import useCtvConfig from './use-ctv-config';
 import StepFileManager from './cucumber/step-file-manager';

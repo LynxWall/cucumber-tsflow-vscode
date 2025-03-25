@@ -6,7 +6,7 @@ import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from 
 import { normalizePath, toKebabCase } from '../utils';
 import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
-import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 
 const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
 

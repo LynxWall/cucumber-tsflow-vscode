@@ -5,7 +5,7 @@ import { pathToFileURL } from 'url';
 import { promisify } from 'util';
 import { locateFile } from './locate-file';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { importer } = require('./importer');
 
 export const loadConfg = async (cwd: string) => {
@@ -23,7 +23,7 @@ export const loadConfg = async (cwd: string) => {
 			break;
 		default:
 			try {
-				// eslint-disable-next-line @typescript-eslint/no-var-requires
+				 
 				definitions = require(filePath);
 			} catch (error: any) {
 				if (error.code === 'ERR_REQUIRE_ESM') {
