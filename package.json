@@ -78,17 +78,19 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run -S esbuild-base -- --minify",
-		"esbuild-base": "rimraf out && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-		"build": "npm run -S esbuild-base -- --sourcemap",
-		"watch": "npm run -S esbuild-base -- --sourcemap --watch",
+		"vscode:prepublish": "npm run -S build-run-worker -- --minify && npm run -S esbuild-base -- --minify",
+		"build-run-worker": "esbuild ./src/runtime/run-worker.ts --bundle --outfile=out/run-worker.js --external:@cucumber/cucumber --external:@lynxwall/cucumber-tsflow --format=cjs --platform=node",
+		"esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --external:@lynxwall/cucumber-tsflow --format=cjs --platform=node",
+		"build": "rimraf out && npm run -S build-run-worker -- --sourcemap && npm run -S esbuild-base -- --sourcemap",
+		"watch": "rimraf out && npm run -S build-run-worker -- --sourcemap && npm run -S esbuild-base -- --sourcemap --watch",
 		"format": "prettier --write \"src/**/*.ts\"",
 		"lint": "eslint --ext ts --ignore-path .eslintignore src",
 		"build:test": "rimraf out && tsc -p ./",
 		"test": "npm run -S build:test && node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@lynxwall/cucumber-tsflow": "^6.1.1",
+		"@lynxwall/cucumber-tsflow": "^7.5.5",
+		"@rollup/pluginutils": "~5.3.0",
 		"@types/minimatch": "^5.1.2",
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.16.5",
@@ -111,5 +113,6 @@
 		"ramda": "^0.29.0",
 		"semver": "^7.5.0",
 		"yaml": "2.2.1"
-	}
+	},
+	"packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

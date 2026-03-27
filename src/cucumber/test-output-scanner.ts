@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ChildProcessWithoutNullStreams } from 'child_process';
+import { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process';
 import styles from 'ansi-styles';
 
 const crlf = '\r\n';

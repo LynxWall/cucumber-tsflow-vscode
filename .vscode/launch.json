@@ -15,6 +15,13 @@
 			"postDebugTask": "Terminate All Tasks"
 		},
 		{
+			"name": "Attach to Node Process",
+			"type": "node",
+			"request": "attach",
+			"port": 6888, // The port the Node.js process is listening on for debugging
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
 			"name": "Extension Tests",
 			"type": "extensionHost",
 			"request": "launch",

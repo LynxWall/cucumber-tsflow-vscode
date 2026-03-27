@@ -7,7 +7,7 @@ import {
 	UseStepFileFeature,
 	UseStepFileScenario
 } from '../types';
-import { hasMatchingStep } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { hasMatchingStep } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 
 /**
  * Capture parsed features

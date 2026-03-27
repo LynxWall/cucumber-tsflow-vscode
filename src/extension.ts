@@ -13,32 +13,61 @@ import { toKebabCase } from './utils';
 import GherkinManager from './gherkin/gherkin-manager';
 import { sortBy, compose, toLower, prop } from 'ramda';
 
+// sort helper that uses ramda
 const sortByName = sortBy<CucumberProject>(compose(toLower, prop('name')));
 
+/**
+ * Helper used to extract individual paths from a cucumber config file
+ * setting that holds an array.
+ * @param profiles
+ * @param propName
+ * @returns
+ */
 const getMatchPaths = (profiles: any[], propName: string): string[] => {
 	return profiles.reduce((result, curr) => {
-		if (result.length === 0) {
-			return curr[propName];
+		if (result?.length > 0) {
+			if (propName in curr) {
+				return [...new Set([...result, ...curr[propName]])];
+			}
+			return [...new Set(result)];
 		} else {
-			return [...new Set([...result, ...curr[propName]])];
+			if (propName in curr) {
+				return curr[propName];
+			}
+			return [];
 		}
 	}, [] as string[]);
 };
 
-const getMatchPattern = (pattern: string, projectName: string) => {
+/**
+ * Generates a blob path used to query for files
+ * under the project folder
+ *
+ * @param relativePath Relative path from project folder
+ * @param projectName Name of the project
+ * @returns
+ */
+const getProjectGlobPath = (relativePath: string, projectName: string) => {
 	// check for relative paths
-	if (pattern.startsWith('./') || pattern.startsWith('.\\')) {
-		pattern = pattern.substring(2);
-	} else if (pattern.startsWith('../') || pattern.startsWith('..\\')) {
-		pattern = pattern.substring(3);
+	if (relativePath.startsWith('./') || relativePath.startsWith('.\\')) {
+		relativePath = relativePath.substring(2);
+	} else if (relativePath.startsWith('../') || relativePath.startsWith('..\\')) {
+		relativePath = relativePath.substring(3);
 	}
 	// if starting with glob strip it off since we'll add it back in
-	if (pattern.startsWith('**/') || pattern.startsWith('**\\')) {
-		pattern = pattern.substring(3);
+	if (relativePath.startsWith('**/') || relativePath.startsWith('**\\')) {
+		relativePath = relativePath.substring(3);
 	}
-	return `**/${projectName}/${pattern}`;
+	return `**/${projectName}/${relativePath}`;
 };
 
+/**
+ * Looks for a profile named default and returns that
+ * or the first profile if not found
+ *
+ * @param profileNames list of profile names
+ * @returns
+ */
 const getDefaultProfile = (profileNames: string[]): string => {
 	if (profileNames.indexOf('default') >= 0) {
 		return 'default';
@@ -52,12 +81,19 @@ export const activate = async (context: vscode.ExtensionContext) => {
 	const ctvConfig = useCtvConfig().getConfig();
 	const cucumberTsFlow = useCucumberTsFlow();
 
+	// If we have a project path and the cucumber-tsflow check passes we can load.
 	if (ctvConfig.projectPath && cucumberTsFlow.checkCucumberTsFlow()) {
+		// First step is to find all folders that have a cucumber configuration
+		// file under the workspace root using allCucumberSettingsFromRoot
 		const projects = new Array<CucumberProject>();
 		const settingsPaths = ctvConfig.allCucumberSettingsFromRoot;
+
+		// iterate through all paths, load configuration settings along
+		// with other information and save that in the projects array.
 		for (let setIdx = 0; setIdx < settingsPaths.length; setIdx++) {
 			const config = await loadConfg(settingsPaths[setIdx]);
 			const nameIdx = settingsPaths[setIdx].lastIndexOf('/');
+			// Project name is the name of the folder that contains the cucumber configuration
 			projects.push({
 				name: settingsPaths[setIdx].substring(nameIdx + 1),
 				path: settingsPaths[setIdx],
@@ -66,25 +102,36 @@ export const activate = async (context: vscode.ExtensionContext) => {
 			});
 		}
 
+		// Project names are the names of the folders that contains cucumber configuration files.
+		// In other words, each project represents a folder in the workspace.
+		// iterate through the projects in sorted order
 		const sortedProjects = sortByName(projects);
 		for (let pIdx = 0; pIdx < sortedProjects.length; pIdx++) {
 			const project = sortedProjects[pIdx];
 
+			// get profile names from config and find the default, which
+			// is either marked as default or the first profile found
 			const profileNames = Object.getOwnPropertyNames(project.config);
 			const defaultProfile = getDefaultProfile(profileNames);
 
+			// load the profiles into an array and load the
+			// feature and step paths from the profiles into an array
 			const profiles = Object.values(project.config);
 			const featurePaths = getMatchPaths(profiles, 'paths');
-			const stepPaths = getMatchPaths(profiles, 'require');
+			const stepPaths = [...getMatchPaths(profiles, 'require'), ...getMatchPaths(profiles, 'import')];
 
-			const featureSelectors: string[] = featurePaths.map((x: string) => getMatchPattern(x, project.name)) ?? [];
-			const stepSelectors: string[] = stepPaths.map((x: string) => getMatchPattern(x, project.name)) ?? [];
+			// get blob path used to query for files
+			const featureSelectors: string[] = featurePaths.map((x: string) => getProjectGlobPath(x, project.name)) ?? [];
+			const stepSelectors: string[] = stepPaths?.map((x: string) => getProjectGlobPath(x, project.name)) ?? [];
 
+			// Create a vs code test controller for each project
 			const projectName = `Cucumber - ${project.name}`;
 			const controllerId = toKebabCase(projectName);
 			const testController = vscode.tests.createTestController(controllerId, projectName);
+
+			// initialize test helpers
 			const stepFileManager = new StepFileManager(project);
-			const testFeatures = new CucumberTestFeatures(stepFileManager, testController);
+			const testFeatures = new CucumberTestFeatures(stepFileManager, testController, project);
 
 			// Custom handler for loading tests.
 			testController.resolveHandler = async () => {

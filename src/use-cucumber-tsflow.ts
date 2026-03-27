@@ -10,18 +10,14 @@ const isCucumberTsFlowInstalled = (ctvConfig: CtvConfig): boolean => {
 };
 
 const useCucumberTsFlow = () => {
-	const minCucumberTsFlowVer = '6.2.0';
+	const minCucumberTsFlowVer = '7.4.0';
 
 	const checkCucumberTsFlow = (): boolean => {
 		const ctvConfig = useCtvConfig().getConfig();
 		if (isCucumberTsFlowInstalled(ctvConfig)) {
-			const currentVersion = require(path.join(
-				ctvConfig.projectPath ?? '',
-				'node_modules',
-				'@lynxwall',
-				'cucumber-tsflow',
-				'lib/version'
-			)).version;
+			const currentVersion = require(
+				path.join(ctvConfig.projectPath ?? '', 'node_modules', '@lynxwall', 'cucumber-tsflow', 'lib/version')
+			).version;
 			if (semverGte(currentVersion, minCucumberTsFlowVer)) {
 				ctvConfig.cucumberOutput.appendLine(`Using cucumber-tsflow version: ${currentVersion}`);
 				return true;

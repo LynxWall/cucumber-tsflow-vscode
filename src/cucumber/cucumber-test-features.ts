@@ -1,12 +1,15 @@
-import { TestItem } from 'vscode';
+import type { TestItem } from 'vscode';
+import type { CucumberProfile, CucumberProject, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
+import type { ScenarioLocation } from '../runtime/ctv-controller';
 import { CucumberTestRunner } from './cucumber-test-runner';
+import useCtvConfig from '../use-ctv-config';
 import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
-import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
 import { normalizePath, toKebabCase } from '../utils';
 import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
-import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
+import { CtvController } from '../runtime/ctv-controller';
 
 const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
 
@@ -16,11 +19,13 @@ export default class CucumberTestFeatures {
 	private stepFileManager: StepFileManager;
 	private controller: vscode.TestController;
 	private cucumberTestRunner: CucumberTestRunner;
+	private project: CucumberProject;
 
-	constructor(stepFileManager: StepFileManager, controller: vscode.TestController) {
+	constructor(stepFileManager: StepFileManager, controller: vscode.TestController, project: CucumberProject) {
 		this.stepFileManager = stepFileManager;
 		this.controller = controller;
 		this.cucumberTestRunner = new CucumberTestRunner();
+		this.project = project;
 	}
 
 	/**
@@ -41,6 +46,7 @@ export default class CucumberTestFeatures {
 	private async loadFeature(feature: ParsedFeature) {
 		const featureUri = vscode.Uri.file(normalizePath(feature.featureFile));
 		const featureId = toKebabCase(feature.title);
+		const ctvConfig = useCtvConfig().getConfig();
 
 		// Check to see if we should bypass this feature. Uses
 		// Tags setting from the default profile if found
@@ -56,8 +62,12 @@ export default class CucumberTestFeatures {
 				for (let sIdx = 0; sIdx < feature.scenarios.length; sIdx++) {
 					const scenario = feature.scenarios[sIdx];
 					const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-					this.scenarioData.set(testItem, scenario);
-					scenarioItems.push(testItem);
+					if (scenarioItems.some(x => x.id === testItem.id)) {
+						ctvConfig.cucumberOutput.appendLine(`Duplicate scenario found: \"${testItem.label}\", Skipping.`);
+					} else {
+						this.scenarioData.set(testItem, scenario);
+						scenarioItems.push(testItem);
+					}
 				}
 			}
 			if (feature.scenarioOutlines.length > 0) {
@@ -71,8 +81,12 @@ export default class CucumberTestFeatures {
 							scenarioOutline.title,
 							featureUri
 						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
+						if (scenarioItems.some(x => x.id === testItem.id)) {
+							ctvConfig.cucumberOutput.appendLine(`Duplicate scenario found: \"${testItem.label}\", Skipping.`);
+						} else {
+							this.scenarioData.set(testItem, scenario);
+							scenarioItems.push(testItem);
+						}
 					}
 				}
 			}
@@ -88,6 +102,7 @@ export default class CucumberTestFeatures {
 	 * @param uri
 	 */
 	public async updateTests(uri: vscode.Uri): Promise<void> {
+		const ctvConfig = useCtvConfig().getConfig();
 		const parsedFeature = await this.stepFileManager.getParsedFeature(uri);
 		if (parsedFeature && (parsedFeature.scenarios.length > 0 || parsedFeature.scenarioOutlines.length > 0)) {
 			const featureId = toKebabCase(parsedFeature.title);
@@ -101,8 +116,12 @@ export default class CucumberTestFeatures {
 			for (let sIdx = 0; sIdx < parsedFeature.scenarios.length; sIdx++) {
 				const scenario = parsedFeature.scenarios[sIdx];
 				const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-				this.scenarioData.set(testItem, scenario);
-				scenarioItems.push(testItem);
+				if (scenarioItems.some(x => x.id === testItem.id)) {
+					ctvConfig.cucumberOutput.appendLine(`Duplicate scenario found: \"${testItem.label}\", Skipping.`);
+				} else {
+					this.scenarioData.set(testItem, scenario);
+					scenarioItems.push(testItem);
+				}
 			}
 			if (parsedFeature.scenarioOutlines.length > 0) {
 				for (let soIdx = 0; soIdx < parsedFeature.scenarioOutlines.length; soIdx++) {
@@ -115,8 +134,12 @@ export default class CucumberTestFeatures {
 							scenarioOutline.title,
 							featureUri
 						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
+						if (scenarioItems.some(x => x.id === testItem.id)) {
+							ctvConfig.cucumberOutput.appendLine(`Duplicate scenario found: \"${testItem.label}\", Skipping.`);
+						} else {
+							this.scenarioData.set(testItem, scenario);
+							scenarioItems.push(testItem);
+						}
 					}
 				}
 			}
@@ -213,17 +236,27 @@ export default class CucumberTestFeatures {
 		await vscode.commands.executeCommand('testing.showMostRecentOutput');
 		await vscode.commands.executeCommand('workbench.action.terminal.clear');
 
-		if (request.include) {
-			const sortedItems = sortByTestLabel(request.include);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
-			}
-		} else if (this.testItems) {
-			const sortedItems = sortByTestLabel(this.testItems);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
+		// get the tests that are part of this run
+		const testItems =
+			request.include && request.include.length > 0
+				? sortByTestLabel(request.include)
+				: this.testItems.length > 0
+					? sortByTestLabel(this.testItems)
+					: [];
+
+		if (testItems.length > 0) {
+			if (debug) {
+				// Debug mode: run sequentially so breakpoints work as expected
+				for (const item of testItems) {
+					await this.runTest(item, request, run, cancellationToken, profileName, debug);
+				}
+			} else {
+				// Run mode: use a forked worker process (loads support code once)
+				const { scenarioItems, scenarioLocations } = this.buildScenarioRun(testItems, request);
+				if (scenarioItems.length > 0) {
+					const ctvController = new CtvController(profileName, this.project);
+					await ctvController.run(scenarioItems, run, scenarioLocations, cancellationToken);
+				}
 			}
 		}
 		run.end();
@@ -240,6 +273,44 @@ export default class CucumberTestFeatures {
 	 * Implementation functions
 	 *
 	 */
+
+	/**
+	 * Flatten feature-level TestItems down to individual scenario-level items,
+	 * building the ScenarioLocation map the worker needs to target each test.
+	 * Respects request.exclude so suppressed items are never queued.
+	 */
+	private buildScenarioRun(
+		testItems: ReadonlyArray<vscode.TestItem>,
+		request: vscode.TestRunRequest
+	): { scenarioItems: vscode.TestItem[]; scenarioLocations: Map<string, ScenarioLocation> } {
+		const scenarioItems: vscode.TestItem[] = [];
+		const scenarioLocations = new Map<string, ScenarioLocation>();
+
+		const addScenario = (item: vscode.TestItem) => {
+			if (request.exclude?.includes(item)) return;
+			const scenario = this.scenarioData.get(item);
+			if (scenario && item.uri) {
+				scenarioItems.push(item);
+				scenarioLocations.set(item.id, {
+					featurePath: item.uri.fsPath,
+					lineNumber: scenario.lineNumber
+				});
+			}
+		};
+
+		for (const item of testItems) {
+			if (request.exclude?.includes(item)) continue;
+			if (item.children.size > 0) {
+				// Feature-level item — collect all child scenarios
+				this.getChildNodes(item.children).forEach(addScenario);
+			} else {
+				// Already a scenario-level item
+				addScenario(item);
+			}
+		}
+
+		return { scenarioItems, scenarioLocations };
+	}
 
 	/**
 	 * Find a feature TestItem that matches the filePath passed in

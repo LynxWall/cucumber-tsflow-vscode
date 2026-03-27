@@ -75,26 +75,26 @@
 	],
 	"nugetpackagemanagergui.nuget.searchPackage.urls": ["https://azuresearch-usnc.nuget.org/query"],
 	"workbench.colorCustomizations": {
-		"activityBar.activeBackground": "#28e1bd",
+		"activityBar.activeBackground": "#8259cb",
 		"activityBar.activeBorder": "#fa45d4",
-		"activityBar.background": "#28e1bd",
-		"activityBar.foreground": "#15202b",
-		"activityBar.inactiveForeground": "#15202b99",
-		"activityBarBadge.background": "#cb57e8",
-		"activityBarBadge.foreground": "#15202b",
-		"sash.hoverBorder": "#28e1bd",
-		"statusBar.background": "#1abc9c",
-		"statusBar.foreground": "#15202b",
-		"statusBarItem.hoverBackground": "#148f77",
-		"statusBarItem.remoteBackground": "#1abc9c",
-		"statusBarItem.remoteForeground": "#15202b",
-		"titleBar.activeBackground": "#1abc9c",
-		"titleBar.activeForeground": "#15202b",
-		"titleBar.inactiveBackground": "#1abc9c99",
-		"titleBar.inactiveForeground": "#15202b99",
-		"commandCenter.border": "#15202b99"
+		"activityBar.background": "#8259cb",
+		"activityBar.foreground": "#e7e7e7",
+		"activityBar.inactiveForeground": "#e7e7e799",
+		"activityBarBadge.background": "#61361e",
+		"activityBarBadge.foreground": "#e7e7e7",
+		"sash.hoverBorder": "#8259cb",
+		"statusBar.background": "#673ab7",
+		"statusBar.foreground": "#e7e7e7",
+		"statusBarItem.hoverBackground": "#8259cb",
+		"statusBarItem.remoteBackground": "#673ab7",
+		"statusBarItem.remoteForeground": "#e7e7e7",
+		"titleBar.activeBackground": "#673ab7",
+		"titleBar.activeForeground": "#e7e7e7",
+		"titleBar.inactiveBackground": "#673ab799",
+		"titleBar.inactiveForeground": "#e7e7e799",
+		"commandCenter.border": "#e7e7e799"
 	},
-	"peacock.color": "#1abc9c",
+	"peacock.color": "#673ab7",
 	"markdownlint.config": {
 		"default": true,
 		"MD003": { "style": "atx" },
@@ -105,4 +105,3 @@
 		"no-hard-tabs": false
 	}
 }
-
