@@ -67,9 +67,13 @@ export class CtvWorker {
 		const { options, configuration: argvConfiguration } = ArgvParser.parse(this.argv);
 
 		// Dynamically require the tsflow API from the target project's node_modules
-		this.tsflowApi = require(
-			path.join(this.env.PROJECT_PATH ?? '', 'node_modules', '@lynxwall', 'cucumber-tsflow', 'lib/api')
-		) as TsflowApi;
+		this.tsflowApi = require(path.join(
+			this.env.PROJECT_PATH ?? '',
+			'node_modules',
+			'@lynxwall',
+			'cucumber-tsflow',
+			'lib/api'
+		)) as TsflowApi;
 
 		this.environment = {
 			cwd: this.cwd,
@@ -119,19 +123,30 @@ export class CtvWorker {
 				}
 			};
 
+			// Track whether any step had a real failure vs. just being pending/undefined
+			let hasHardFailure = false;
 			const result = await this.tsflowApi.runCucumber(
 				{ ...runConfig, support: this.supportCodeLibrary! },
-				this.environment
+				this.environment,
+				envelope => {
+					const status = envelope.testStepFinished?.testStepResult?.status;
+					if (status === 'FAILED' || status === 'AMBIGUOUS') {
+						hasHardFailure = true;
+					}
+				}
 			);
 
 			if (result.success) {
 				this.sendMessage({ type: 'TEST_PASSED', testId });
-			} else {
+			} else if (hasHardFailure) {
 				this.sendMessage({
 					type: 'TEST_FAILED',
 					testId,
 					message: `Scenario at ${sourceSpec} failed. See test output for details.`
 				});
+			} else {
+				// No step failed outright — scenario has pending or undefined steps
+				this.sendMessage({ type: 'TEST_SKIPPED', testId });
 			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
