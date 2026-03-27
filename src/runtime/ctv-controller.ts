@@ -101,7 +101,8 @@ interface ManagedWorker {
 export class CtvController {
 	private readonly profileName: string;
 	private readonly cucumberProject: CucumberProject;
-	private worker: ManagedWorker | null = null;
+	private workers: ManagedWorker[] = [];
+	private pendingWorkerCount = 0;
 	private todo: Array<vscode.TestItem> = [];
 	private allItems = new Map<string, vscode.TestItem>();
 	private testRun: vscode.TestRun | null = null;
@@ -132,12 +133,19 @@ export class CtvController {
 		this.scenarioLocations = scenarioLocations;
 		this.cancellationToken = cancellationToken;
 		this.failing = false;
+		this.workers = [];
 
 		cancellationToken.onCancellationRequested(() => this.handleCancellation());
 
+		const ctvConfig = useCtvConfig().getConfig();
+		const workerCount = Math.max(1, Math.min(ctvConfig.workerCount, testItems.length));
+
 		return new Promise<boolean>(resolve => {
 			this.resolveRun = resolve;
-			this.startWorker('0', debug);
+			this.pendingWorkerCount = workerCount;
+			for (let i = 0; i < workerCount; i++) {
+				this.startWorker(String(i), debug);
+			}
 		});
 	}
 
@@ -160,7 +168,7 @@ export class CtvController {
 		});
 
 		const managedWorker: ManagedWorker = { state: WorkerState.new, process: workerProcess, id };
-		this.worker = managedWorker;
+		this.workers.push(managedWorker);
 
 		workerProcess.on('message', (message: WorkerToCoordinatorEvent) => {
 			this.handleWorkerMessage(managedWorker, message);
@@ -182,10 +190,9 @@ export class CtvController {
 			}
 		});
 
-		workerProcess.on('close', exitCode => this.handleWorkerClose(exitCode));
+		workerProcess.on('close', exitCode => this.handleWorkerClose(managedWorker, exitCode));
 		workerProcess.on('error', err => {
-			this.testRun?.appendOutput(`Worker process error: ${err.message}\r\n`);
-			this.resolveRun?.(!this.failing);
+			this.testRun?.appendOutput(`Worker ${id} error: ${err.message}\r\n`);
 		});
 
 		workerProcess.send({ type: 'INITIALIZE' } satisfies InitializeCommand);
@@ -246,7 +253,10 @@ export class CtvController {
 			case 'FINISHED':
 				if (!message.success) this.failing = true;
 				worker.state = WorkerState.closed;
-				this.resolveRun?.(!this.failing);
+				this.pendingWorkerCount--;
+				if (this.pendingWorkerCount <= 0) {
+					this.settle(!this.failing);
+				}
 				break;
 		}
 	}
@@ -291,13 +301,19 @@ export class CtvController {
 
 	// --- Process close and cancellation ---
 
-	private handleWorkerClose(exitCode: number | null): void {
+	private handleWorkerClose(worker: ManagedWorker, exitCode: number | null): void {
+		// Already counted via FINISHED message — avoid double-decrement
+		if (worker.state === WorkerState.closed) return;
+
 		// Exit code 2 means pending/skipped tests — not a failure
 		if (exitCode !== null && exitCode !== 0 && exitCode !== 2) {
 			this.failing = true;
 		}
-		// Resolve if the Promise hasn't been settled yet (e.g. worker crashed before FINISHED)
-		this.resolveRun?.(!this.failing);
+		worker.state = WorkerState.closed;
+		this.pendingWorkerCount--;
+		if (this.pendingWorkerCount <= 0) {
+			this.settle(!this.failing);
+		}
 	}
 
 	private handleCancellation(): void {
@@ -307,14 +323,21 @@ export class CtvController {
 		}
 		this.todo = [];
 
-		// Kill the worker process
-		if (this.worker) {
+		// Kill all worker processes
+		for (const worker of this.workers) {
 			try {
-				this.worker.process.kill();
+				worker.process.kill();
 			} catch {
 				/* ignored */
 			}
 		}
-		this.resolveRun?.(false);
+		this.settle(false);
+	}
+
+	/** Resolve the run Promise exactly once. */
+	private settle(success: boolean): void {
+		const resolve = this.resolveRun;
+		this.resolveRun = undefined;
+		resolve?.(success);
 	}
 }

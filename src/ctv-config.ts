@@ -94,6 +94,13 @@ export default class CtvConfig {
 	}
 
 	/**
+	 * Number of worker processes to use when running tests in parallel.
+	 */
+	public get workerCount(): number {
+		return vscode.workspace.getConfiguration().get<number>('cucumber-tsflow.workerCount') ?? 1;
+	}
+
+	/**
 	 * Get runtime arguments for Cucumber execution
 	 * @param options
 	 * @returns
