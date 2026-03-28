@@ -5,6 +5,9 @@
 	"typescript.tsdk": "node_modules\\typescript\\lib",
 	"npm.packageManager": "yarn",
 	"eslint.packageManager": "yarn",
+
+	// Disable JS debugger auto-attach so build scripts and npm tasks don't get a debugger attached
+	"debug.javascript.autoAttachFilter": "disabled",
 	"editor.formatOnPaste": true,
 	"editor.formatOnSave": true,
 	"editor.formatOnType": false,

@@ -190,7 +190,7 @@ export const activate = async (context: vscode.ExtensionContext) => {
 				context.subscriptions.push(codeLensProviderDisposable);
 			}
 
-			// handle saves to a feature file. Keeps the gherkin feature data up to date
+			// Handle saves to a feature file — keeps gherkin data up to date
 			vscode.workspace.onDidSaveTextDocument(async e => {
 				if (featureSelectors.some((selector: string) => minimatch(e.uri.path, selector))) {
 					await stepFileManager.updateFeature(e.uri.fsPath);
@@ -198,9 +198,17 @@ export const activate = async (context: vscode.ExtensionContext) => {
 				}
 			});
 
+			// Handle saves to a step file — trigger incremental support-code reload
+			vscode.workspace.onDidSaveTextDocument(e => {
+				if (stepSelectors.some((selector: string) => minimatch(e.uri.path, selector))) {
+					testFeatures.notifyFileChanged(e.uri.fsPath);
+				}
+			});
+
 			context.subscriptions.push(testController);
 			context.subscriptions.push(runCucumber);
 			context.subscriptions.push(debugCucumber);
+			context.subscriptions.push({ dispose: () => testFeatures.dispose() });
 		}
 		// log the fact that the extension is active
 		ctvConfig.cucumberOutput.appendLine('Cucumber TsFlow for VS Code is now active!');

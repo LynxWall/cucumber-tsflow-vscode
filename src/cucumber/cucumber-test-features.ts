@@ -1,12 +1,10 @@
 import type { TestItem } from 'vscode';
 import type { CucumberProfile, CucumberProject, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
 import type { ScenarioLocation } from '../runtime/ctv-controller';
-import { CucumberTestRunner } from './cucumber-test-runner';
 import useCtvConfig from '../use-ctv-config';
 import StepFileManager from './step-file-manager';
 import * as vscode from 'vscode';
 import { normalizePath, toKebabCase } from '../utils';
-import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
 import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 import { CtvController } from '../runtime/ctv-controller';
@@ -18,13 +16,12 @@ export default class CucumberTestFeatures {
 	private testItems = new Array<TestItem>();
 	private stepFileManager: StepFileManager;
 	private controller: vscode.TestController;
-	private cucumberTestRunner: CucumberTestRunner;
 	private project: CucumberProject;
+	private ctvControllers = new Map<string, CtvController>();
 
 	constructor(stepFileManager: StepFileManager, controller: vscode.TestController, project: CucumberProject) {
 		this.stepFileManager = stepFileManager;
 		this.controller = controller;
-		this.cucumberTestRunner = new CucumberTestRunner();
 		this.project = project;
 	}
 
@@ -241,22 +238,16 @@ export default class CucumberTestFeatures {
 			request.include && request.include.length > 0
 				? sortByTestLabel(request.include)
 				: this.testItems.length > 0
-					? sortByTestLabel(this.testItems)
-					: [];
+				? sortByTestLabel(this.testItems)
+				: [];
 
 		if (testItems.length > 0) {
-			if (debug) {
-				// Debug mode: run sequentially so breakpoints work as expected
-				for (const item of testItems) {
-					await this.runTest(item, request, run, cancellationToken, profileName, debug);
-				}
-			} else {
-				// Run mode: use a forked worker process (loads support code once)
-				const { scenarioItems, scenarioLocations } = this.buildScenarioRun(testItems, request);
-				if (scenarioItems.length > 0) {
-					const ctvController = new CtvController(profileName, this.project);
-					await ctvController.run(scenarioItems, run, scenarioLocations, cancellationToken);
-				}
+			// Both run and debug use the worker process path.
+			// CtvController handles debug by forking with --inspect and skipping the warm pool.
+			const { scenarioItems, scenarioLocations } = this.buildScenarioRun(testItems, request);
+			if (scenarioItems.length > 0) {
+				const ctvController = this.getOrCreateController(profileName);
+				await ctvController.run(scenarioItems, run, scenarioLocations, cancellationToken, debug);
 			}
 		}
 		run.end();
@@ -266,6 +257,26 @@ export default class CucumberTestFeatures {
 		if (!codeLense) {
 			await vscode.commands.executeCommand('workbench.view.extension.test');
 		}
+	}
+
+	/**
+	 * Notify all warm workers for this project that a step file has changed,
+	 * triggering an incremental reload of their support code library.
+	 */
+	public notifyFileChanged(changedPath: string): void {
+		for (const controller of this.ctvControllers.values()) {
+			controller.notifyFileChanged(changedPath);
+		}
+	}
+
+	/**
+	 * Dispose all warm workers managed by this instance.
+	 */
+	public dispose(): void {
+		for (const controller of this.ctvControllers.values()) {
+			controller.dispose();
+		}
+		this.ctvControllers.clear();
 	}
 
 	/**
@@ -312,6 +323,15 @@ export default class CucumberTestFeatures {
 		return { scenarioItems, scenarioLocations };
 	}
 
+	private getOrCreateController(profileName: string): CtvController {
+		let controller = this.ctvControllers.get(profileName);
+		if (!controller) {
+			controller = new CtvController(profileName, this.project);
+			this.ctvControllers.set(profileName, controller);
+		}
+		return controller;
+	}
+
 	/**
 	 * Find a feature TestItem that matches the filePath passed in
 	 * @param filePath
@@ -325,64 +345,6 @@ export default class CucumberTestFeatures {
 			testFeature = this.testItems.find(x => x.id === featureId);
 		}
 		return testFeature;
-	}
-
-	/**
-	 * Run a test on the testItem passed in. This is an entry function that
-	 * calls the recursive testRunner below.
-	 * @param testItem
-	 * @param request
-	 * @param run
-	 */
-	private async runTest(
-		testItem: vscode.TestItem,
-		request: vscode.TestRunRequest,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		// Users can hide or filter out tests from their run. If the request says
-		// they've done that for this node, then don't run it.
-		if (request.exclude?.includes(testItem)) {
-			return;
-		}
-		await this.testRunner(testItem, run, cancellationToken, profileName, debug);
-	}
-
-	/**
-	 * Recursive function that runs a testItem and all
-	 * children under that testItem, if any.
-	 * @param testItem
-	 * @param run
-	 */
-	private async testRunner(
-		testItem: vscode.TestItem,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		if (testItem.children && testItem.children.size > 0) {
-			const children = this.getChildNodes(testItem.children);
-			const sortedChildren = sortByTestLabel(children);
-			for (let idx = 0; idx < sortedChildren.length; idx++) {
-				await this.testRunner(sortedChildren[idx], run, cancellationToken, profileName, debug);
-			}
-		} else {
-			const scenario = this.scenarioData.get(testItem);
-			if (scenario && !cancellationToken.isCancellationRequested) {
-				run.started(testItem);
-				await scanTestOutput(
-					testItem,
-					run,
-					debug
-						? await this.cucumberTestRunner.debug(testItem.uri!.path, scenario.lineNumber, profileName, scenario)
-						: await this.cucumberTestRunner.run(testItem.uri!.path, scenario.lineNumber, profileName, scenario),
-					cancellationToken
-				);
-			}
-		}
 	}
 
 	/**
