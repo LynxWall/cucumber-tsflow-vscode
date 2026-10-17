@@ -10,7 +10,7 @@ const isCucumberTsFlowInstalled = (ctvConfig: CtvConfig): boolean => {
 };
 
 const useCucumberTsFlow = () => {
-	const minCucumberTsFlowVer = '6.2.0';
+	const minCucumberTsFlowVer = '8.0.0';
 
 	const checkCucumberTsFlow = (): boolean => {
 		const ctvConfig = useCtvConfig().getConfig();

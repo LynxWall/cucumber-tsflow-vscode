@@ -3,6 +3,9 @@ import { ChildProcessWithoutNullStreams } from 'child_process';
 import styles from 'ansi-styles';
 
 const crlf = '\r\n';
+// Lines written to stderr by the Node inspector (node --inspect) when debugging
+const inspectorLine =
+	/^(Debugger listening on ws:|For help, see: https:\/\/nodejs\.org\/en\/docs\/inspector|Debugger attached|Waiting for the debugger to disconnect)/;
 const forceCRLF = (str: string) => str.replace(/(?<!\r)\n/gm, '\r\n');
 
 export class TestOutputScanner implements vscode.Disposable {
@@ -78,8 +81,15 @@ export const scanTestOutput = async (
 
 			scanner.onRunnerClose(code => {
 				task.appendOutput(forceCRLF(buffer.toString()), undefined, testItem);
-				const errData = errBuffer.toString();
-				if (!errData.includes('Debugger attached')) {
+				// cucumber-tsflow 8.0 writes its own output (configuration, startup
+				// progress, notices) to stderr, so keep it and drop only the lines
+				// the Node inspector prints when debugging.
+				const errData = errBuffer
+					.toString()
+					.split(/\r?\n/)
+					.filter(line => !inspectorLine.test(line))
+					.join('\n');
+				if (errData.trim().length > 0) {
 					task.appendOutput(forceCRLF(errData), undefined, testItem);
 				}
 				switch (code) {

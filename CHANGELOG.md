@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [3.0.0]
+
+### Update
+
+- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.0, whose helper modules moved from `lib/cucumber` to `lib/runtime`. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
+- cucumber-tsflow 8.0 writes its own output (configuration lines, startup progress, notices) to stderr. That output is now shown in the Test Results view for both run and debug; only the lines the Node inspector prints when debugging are filtered out. Previously all of stderr was dropped during a debug run.
+- Toolchain: TypeScript 5.9, esbuild 0.25, glob 11 and Node 22 types.
+
+### Fixed
+
+- Loading tests when a cucumber profile does not define `paths` or `require`. Previously a profile missing either setting threw during activation, leaving the Test Explorer empty for every project in the workspace.
+- Step files listed under the `import` setting (ES Module projects) now get Code Lens support alongside `require`.
+- Two scenarios in a feature whose titles map to the same test id no longer overwrite each other in the Test Explorer. The duplicate is skipped and reported in the `Cucumber TsFlow` output channel.
+
 ## [2.3.0]
 
 ### Update

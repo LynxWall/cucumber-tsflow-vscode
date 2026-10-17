@@ -76,7 +76,7 @@
 	"nugetpackagemanagergui.nuget.searchPackage.urls": ["https://azuresearch-usnc.nuget.org/query"],
 	"workbench.colorCustomizations": {
 		"activityBar.activeBackground": "#28e1bd",
-		"activityBar.activeBorder": "#fa45d4",
+		"activityBar.activeBorder": "#15202b",
 		"activityBar.background": "#28e1bd",
 		"activityBar.foreground": "#15202b",
 		"activityBar.inactiveForeground": "#15202b99",
@@ -86,13 +86,22 @@
 		"statusBar.background": "#1abc9c",
 		"statusBar.foreground": "#15202b",
 		"statusBarItem.hoverBackground": "#148f77",
-		"statusBarItem.remoteBackground": "#1abc9c",
+		"statusBarItem.remoteBackground": "#a31bc4",
 		"statusBarItem.remoteForeground": "#15202b",
 		"titleBar.activeBackground": "#1abc9c",
 		"titleBar.activeForeground": "#15202b",
 		"titleBar.inactiveBackground": "#1abc9c99",
 		"titleBar.inactiveForeground": "#15202b99",
-		"commandCenter.border": "#15202b99"
+		"commandCenter.border": "#15202b99",
+		"activityBarTop.activeBackground": "#28e1bd",
+		"activityBarTop.activeBorder": "#15202b",
+		"activityBarTop.background": "#28e1bd",
+		"activityBarTop.foreground": "#15202b",
+		"activityBarTop.inactiveForeground": "#15202b99",
+		"commandCenter.foreground": "#15202b",
+		"statusBar.debuggingBackground": "#1abc9c",
+		"statusBar.debuggingForeground": "#15202b",
+		"statusBar.inactiveBackground": "#1abc9c"
 	},
 	"peacock.color": "#1abc9c",
 	"markdownlint.config": {

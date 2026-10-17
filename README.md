@@ -1,6 +1,6 @@
 # Cucumber TsFlow for VS Code
 
-This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v6.2.0** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.78.0** or greater.
+This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v8.0.0** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.78.0** or greater.
 
 ## Features
 
@@ -49,12 +49,15 @@ This first release focuses on providing run/debug support in step files using Co
 
 This extension requires the following:
 
-- [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **6.2.0** or higher.
+- [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **8.0.0** or higher.
+- [Node.js ![](images/external-link-16.png)](https://nodejs.org/) version **22** or higher on the path, which cucumber-tsflow 8 requires.
 - [vscode ![](images/external-link-16.png)](https://code.visualstudio.com/) version **1.78.0** or higher.
 
-## Limitations
+Projects that are still on cucumber-tsflow 7.x should use version 2.3.0 of this extension.
 
-**Does not support "[ES Modules (experimental)](https://github.com/cucumber/cucumber-js/blob/v9.1.2/docs/esm.md)" in cucumber.js** - This extension will **not** look at the new **import** configuration setting that was added for ES Module support. However, both the esvue and esnode transpilers are configured for ES Module builds. In other words, there is no need to use experimental ESM support in cucumber.js when using one of these transpilers in cucumber-tsflow.
+## Step files and ES Modules
+
+Step files are discovered from the `require` **and** `import` settings of every profile in a cucumber configuration, so Code Lens works for both CommonJS and ES Module projects. Features are loaded from the `paths` setting of the `default` profile (or the first profile when there is no `default`).
 
 ## Extension Settings
 

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { sync as globSync } from 'glob';
+import { globSync } from 'glob';
 import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
 
 export default class CtvConfig {

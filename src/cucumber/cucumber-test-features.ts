@@ -1,12 +1,13 @@
 import { TestItem } from 'vscode';
 import { CucumberTestRunner } from './cucumber-test-runner';
 import StepFileManager from './step-file-manager';
+import useCtvConfig from '../use-ctv-config';
 import * as vscode from 'vscode';
 import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
 import { normalizePath, toKebabCase } from '../utils';
 import { scanTestOutput } from './test-output-scanner';
 import { sortBy, compose, toLower, prop } from 'ramda';
-import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 
 const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
 
@@ -56,8 +57,7 @@ export default class CucumberTestFeatures {
 				for (let sIdx = 0; sIdx < feature.scenarios.length; sIdx++) {
 					const scenario = feature.scenarios[sIdx];
 					const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-					this.scenarioData.set(testItem, scenario);
-					scenarioItems.push(testItem);
+					this.addScenarioItem(scenarioItems, testItem, scenario);
 				}
 			}
 			if (feature.scenarioOutlines.length > 0) {
@@ -71,8 +71,7 @@ export default class CucumberTestFeatures {
 							scenarioOutline.title,
 							featureUri
 						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
+						this.addScenarioItem(scenarioItems, testItem, scenario);
 					}
 				}
 			}
@@ -101,8 +100,7 @@ export default class CucumberTestFeatures {
 			for (let sIdx = 0; sIdx < parsedFeature.scenarios.length; sIdx++) {
 				const scenario = parsedFeature.scenarios[sIdx];
 				const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-				this.scenarioData.set(testItem, scenario);
-				scenarioItems.push(testItem);
+				this.addScenarioItem(scenarioItems, testItem, scenario);
 			}
 			if (parsedFeature.scenarioOutlines.length > 0) {
 				for (let soIdx = 0; soIdx < parsedFeature.scenarioOutlines.length; soIdx++) {
@@ -115,8 +113,7 @@ export default class CucumberTestFeatures {
 							scenarioOutline.title,
 							featureUri
 						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
+						this.addScenarioItem(scenarioItems, testItem, scenario);
 					}
 				}
 			}
@@ -240,6 +237,23 @@ export default class CucumberTestFeatures {
 	 * Implementation functions
 	 *
 	 */
+
+	/**
+	 * Adds a scenario TestItem to the list for a feature. TestItem ids are
+	 * kebab-cased titles, so two scenarios whose titles produce the same id
+	 * would collide in the Test Explorer; the duplicate is skipped and reported.
+	 * @param scenarioItems
+	 * @param testItem
+	 * @param scenario
+	 */
+	private addScenarioItem(scenarioItems: Array<TestItem>, testItem: TestItem, scenario: ParsedScenario) {
+		if (scenarioItems.some(x => x.id === testItem.id)) {
+			useCtvConfig().getConfig().cucumberOutput.appendLine(`Duplicate scenario found: "${testItem.label}", Skipping.`);
+		} else {
+			this.scenarioData.set(testItem, scenario);
+			scenarioItems.push(testItem);
+		}
+	}
 
 	/**
 	 * Find a feature TestItem that matches the filePath passed in

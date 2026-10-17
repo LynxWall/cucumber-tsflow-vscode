@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ManagedScenarioContext } from '@lynxwall/cucumber-tsflow/lib/cucumber/managed-scenario-context';
+import { ManagedScenarioContext } from '@lynxwall/cucumber-tsflow/lib/runtime/managed-scenario-context';
 import { Options } from './gherkin/configuration';
 import GherkinManager, { IMapFeaturesResult } from './gherkin/gherkin-manager';
 

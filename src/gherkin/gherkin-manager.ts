@@ -1,7 +1,7 @@
 import GherkinFeature from './gherkin-feature';
 import { ParsedFeature, ParsedScenario, ParsedStep, StepFileFeature } from '../types';
 import { hasStringValue } from '@lynxwall/cucumber-tsflow/lib/utils/helpers';
-import { hasMatchingStep, hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { hasMatchingStep, hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 import { stepFileFeatures } from '../cucumber/step-file-features';
 import { normalizePath } from '../utils';
 
