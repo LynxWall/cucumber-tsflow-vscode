@@ -9,6 +9,12 @@ Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsf
 
 ## [3.0.0]
 
+### Added
+
+- One cucumber-tsflow process per run instead of one per scenario. Running a feature, a selection or the whole suite now pays the support-code startup once; on a Vue project with 96 support files a nine-scenario feature went from about a minute to seven seconds. Results are read from cucumber's message stream (`--format message`), so every scenario still gets its own result and duration, Scenario Outline examples are folded into their outline, and a failing step reports its error message with a link to the step in the feature file.
+- A run that covers every feature of a configuration passes no paths to the CLI, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal; a filtered run passes its features sorted the same way. cucumber runs explicit paths in the order given, and in an order-dependent suite a different order shows up as failures that the command line does not have.
+- `cucumber-tsflow.selectiveLoad` (default `true`) passes `--selective-load`, cucumber-tsflow 8.0's selective loading, on filtered runs, so they load only the support files the selected scenarios use; a run of every feature leaves it off, since it loads everything anyway and the index work only costs time. Set it to `false` to leave the decision to the cucumber profile.
+
 ### Update
 
 - Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.0, whose helper modules moved from `lib/cucumber` to `lib/runtime`. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.

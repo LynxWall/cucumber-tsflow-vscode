@@ -72,6 +72,11 @@
 						"type": "boolean",
 						"default": false,
 						"description": "Preserve focus on editor when running tests"
+					},
+					"cucumber-tsflow.selectiveLoad": {
+						"type": "boolean",
+						"default": true,
+						"description": "Pass --selective-load to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use (cucumber-tsflow 8.0 selective loading). A run of every feature loads everything anyway and leaves it off. Turn off to let the cucumber profile decide."
 					}
 				}
 			}

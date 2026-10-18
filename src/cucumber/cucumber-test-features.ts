@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { TestItem } from 'vscode';
 import { CucumberTestRunner } from './cucumber-test-runner';
 import StepFileManager from './step-file-manager';
@@ -5,11 +6,18 @@ import useCtvConfig from '../use-ctv-config';
 import * as vscode from 'vscode';
 import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
 import { normalizePath, toKebabCase } from '../utils';
-import { scanTestOutput } from './test-output-scanner';
-import { sortBy, compose, toLower, prop } from 'ramda';
+import { RequestedScenario, scanTestRun, scenarioKey } from './test-output-scanner';
 import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 
-const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
+// One cucumber-tsflow process per run. When the feature paths would not fit on a
+// Windows command line (8191 characters, shared with node, the bin and the options)
+// the run is split into several processes.
+const maxPathArgsLength = 6000;
+
+type RunUnit = { pathArg: string; sortKey: string; scenarios: RequestedScenario[] };
+// full: every feature of the project is selected, so the CLI gets no paths and
+// expands the profile's own `paths`, exactly as it does from a terminal
+type RunBatch = { cwd: string; units: RunUnit[]; full: boolean };
 
 export default class CucumberTestFeatures {
 	private scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
@@ -210,17 +218,25 @@ export default class CucumberTestFeatures {
 		await vscode.commands.executeCommand('testing.showMostRecentOutput');
 		await vscode.commands.executeCommand('workbench.action.terminal.clear');
 
-		if (request.include) {
-			const sortedItems = sortByTestLabel(request.include);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
-			}
-		} else if (this.testItems) {
-			const sortedItems = sortByTestLabel(this.testItems);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
+		const batches = this.collectBatches(request);
+		for (const batch of batches) {
+			// Suites can be order-dependent, and cucumber runs explicit paths in the
+			// order given. A full run therefore passes no paths (cucumber expands the
+			// profile's `paths` itself, in the same order as from a terminal) and no
+			// --selective-load, which only costs time when everything is loaded anyway.
+			const chunks = batch.full ? [batch.units] : this.chunkUnits(batch.units);
+			for (const chunk of chunks) {
+				if (cancellationToken.isCancellationRequested) {
+					break;
+				}
+				const requested: RequestedScenario[] = [];
+				chunk.forEach(unit => requested.push(...unit.scenarios));
+				requested.forEach(scenario => run.enqueued(scenario.item));
+				const paths = batch.full ? [] : chunk.map(unit => unit.pathArg);
+				const scanner = debug
+					? await this.cucumberTestRunner.debug(paths, profileName, batch.cwd, !batch.full)
+					: await this.cucumberTestRunner.run(paths, profileName, batch.cwd, !batch.full);
+				await scanTestRun(requested, run, scanner, cancellationToken, batch.cwd);
 			}
 		}
 		run.end();
@@ -271,61 +287,95 @@ export default class CucumberTestFeatures {
 	}
 
 	/**
-	 * Run a test on the testItem passed in. This is an entry function that
-	 * calls the recursive testRunner below.
-	 * @param testItem
+	 * Groups the scenarios of a run request into one batch per working directory
+	 * (the folder holding the cucumber configuration). Users can hide or filter
+	 * out tests from their run, so excluded items are left out. A feature whose
+	 * scenarios are all included is passed to the CLI as the feature file;
+	 * otherwise each scenario is passed as `<feature>:<line>`.
 	 * @param request
-	 * @param run
 	 */
-	private async runTest(
-		testItem: vscode.TestItem,
-		request: vscode.TestRunRequest,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		// Users can hide or filter out tests from their run. If the request says
-		// they've done that for this node, then don't run it.
-		if (request.exclude?.includes(testItem)) {
-			return;
+	private collectBatches(request: vscode.TestRunRequest): RunBatch[] {
+		const roots = request.include ?? this.testItems;
+		const included = new Map<TestItem, TestItem[]>(); // feature item -> included scenario items
+		const visit = (item: TestItem) => {
+			if (request.exclude?.includes(item)) {
+				return;
+			}
+			if (item.children.size > 0) {
+				item.children.forEach(child => visit(child));
+			} else if (item.parent) {
+				const siblings = included.get(item.parent) ?? [];
+				if (!siblings.includes(item)) {
+					siblings.push(item);
+				}
+				included.set(item.parent, siblings);
+			}
+		};
+		roots.forEach(item => visit(item));
+
+		const batches = new Map<string, RunBatch>();
+		included.forEach((scenarioItems, feature) => {
+			const scenarios = scenarioItems
+				.map(item => ({ item, data: this.scenarioData.get(item) }))
+				.filter(entry => entry.data !== undefined);
+			if (scenarios.length === 0 || !feature.uri) {
+				return;
+			}
+			const cwd = scenarios[0].data!.cwd;
+			const featurePath = normalizePath(path.relative(cwd, feature.uri.fsPath));
+			const batch = batches.get(cwd) ?? { cwd, units: [], full: false };
+			batches.set(cwd, batch);
+			const requested = scenarios.map(entry => ({
+				item: entry.item,
+				key: scenarioKey(cwd, featurePath, entry.data!.lineNumber)
+			}));
+			// cucumber sorts the absolute paths a glob matched with a plain string sort;
+			// the same key here gives a filtered run the order a full run would have
+			const sortKey = path.normalize(feature.uri.fsPath);
+			if (scenarios.length === feature.children.size) {
+				batch.units.push({ pathArg: featurePath, sortKey, scenarios: requested });
+			} else {
+				requested.forEach((scenario, idx) => {
+					const line = scenarios[idx].data!.lineNumber;
+					batch.units.push({
+						pathArg: `${featurePath}:${line}`,
+						sortKey: `${sortKey}:${String(line).padStart(6, '0')}`,
+						scenarios: [scenario]
+					});
+				});
+			}
+		});
+		const batchList = Array.from(batches.values());
+		for (const batch of batchList) {
+			batch.units.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
+			// one controller is one project, so its features are all under this cwd
+			batch.full = this.testItems.every(feature => (included.get(feature)?.length ?? 0) === feature.children.size);
 		}
-		await this.testRunner(testItem, run, cancellationToken, profileName, debug);
+		return batchList;
 	}
 
 	/**
-	 * Recursive function that runs a testItem and all
-	 * children under that testItem, if any.
-	 * @param testItem
-	 * @param run
+	 * Splits the units of a batch so that each chunk's path arguments fit on
+	 * the command line.
+	 * @param units
 	 */
-	private async testRunner(
-		testItem: vscode.TestItem,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		if (testItem.children && testItem.children.size > 0) {
-			const children = this.getChildNodes(testItem.children);
-			const sortedChildren = sortByTestLabel(children);
-			for (let idx = 0; idx < sortedChildren.length; idx++) {
-				await this.testRunner(sortedChildren[idx], run, cancellationToken, profileName, debug);
+	private chunkUnits(units: RunUnit[]): RunUnit[][] {
+		const chunks: RunUnit[][] = [];
+		let current: RunUnit[] = [];
+		let length = 0;
+		for (const unit of units) {
+			if (current.length > 0 && length + unit.pathArg.length > maxPathArgsLength) {
+				chunks.push(current);
+				current = [];
+				length = 0;
 			}
-		} else {
-			const scenario = this.scenarioData.get(testItem);
-			if (scenario && !cancellationToken.isCancellationRequested) {
-				run.started(testItem);
-				await scanTestOutput(
-					testItem,
-					run,
-					debug
-						? await this.cucumberTestRunner.debug(testItem.uri!.path, scenario.lineNumber, profileName, scenario)
-						: await this.cucumberTestRunner.run(testItem.uri!.path, scenario.lineNumber, profileName, scenario),
-					cancellationToken
-				);
-			}
+			current.push(unit);
+			length += unit.pathArg.length + 3;
 		}
+		if (current.length > 0) {
+			chunks.push(current);
+		}
+		return chunks;
 	}
 
 	/**

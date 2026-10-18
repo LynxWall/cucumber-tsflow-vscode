@@ -59,6 +59,10 @@ Projects that are still on cucumber-tsflow 7.x should use version 2.3.0 of this 
 
 Step files are discovered from the `require` **and** `import` settings of every profile in a cucumber configuration, so Code Lens works for both CommonJS and ES Module projects. Features are loaded from the `paths` setting of the `default` profile (or the first profile when there is no `default`).
 
+## How tests run
+
+Each run or debug request starts **one** cucumber-tsflow process per cucumber configuration, with every selected scenario passed as `<feature>:<line>` (or the feature file when all of its scenarios are selected), so running a feature or the whole suite costs one startup instead of one per scenario. Results come from cucumber's message stream, so each scenario gets its own result, duration and, on failure, the error with a link to the failing step; the output of the run is shown in Test Results as it happens. A run that covers every feature of a configuration passes no paths at all, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal; a filtered run passes its features sorted the same way, because cucumber runs explicit paths in the order given and suites can be order-dependent. Filtered runs pass `--selective-load` by default (see the `selectiveLoad` setting), which lets cucumber-tsflow 8.0 skip the support files the selected scenarios do not use; a full run loads everything anyway and leaves the flag off.
+
 ## Extension Settings
 
 This extension should support most projects with it's default configuration. However, several configuration settings have been provided to support different project structures and cucumber configurations.
@@ -79,6 +83,7 @@ This extension contributes the following settings:
 | `debugOptions`            | object  |                                       | Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] }) |
 | `disableCodeLens` | boolean | false | Disable Code Lens feature |
 | `preserveEditorFocus`     | boolean | false                                 | Preserve focus on editor when running tests                  |
+| `selectiveLoad`           | boolean | true                                  | Pass `--selective-load` to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use. Turn off to let the cucumber profile decide. |
 
 ## Change Log
 

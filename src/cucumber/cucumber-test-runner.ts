@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import useCtvConfig from '../use-ctv-config';
-import { isWindows, normalizeDriveLetter, pushMany } from '../utils';
-import { spawn } from 'child_process';
+import { pushMany, quote } from '../utils';
+import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
 import CtvConfig from '../ctv-config';
 import { TestOutputScanner } from './test-output-scanner';
-import { ParsedScenario } from '../types';
 
 const DEBUG_CONFIG_NAME = 'Attach Cucumber-tsflow Debug';
 
@@ -15,45 +14,31 @@ export class CucumberTestRunner {
 		this.ctvConfig = useCtvConfig().getConfig();
 	}
 
-	public async run(filePath: string, lineNumber: number, profileName: string, scenario: ParsedScenario) {
-		// if we're running on windows and the path starts
-		// with a leading slash we need to strip
-		// off the leading slash
-		if (isWindows() && filePath.startsWith('/')) {
-			filePath = normalizeDriveLetter(filePath.substring(1));
-		}
-		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
-		if (scenario.args) {
-			args.push(...scenario.args);
-		}
-		const cp = spawn(this.ctvConfig.runCommand(), args, {
-			cwd: scenario.cwd,
-			shell: true,
-			stdio: 'pipe',
-			// eslint-disable-next-line @typescript-eslint/naming-convention
-			env: { ...process.env, FORCE_COLOR: '1' }
-		});
+	/**
+	 * Runs one cucumber-tsflow process for the feature paths passed in
+	 * (`<feature>` or `<feature>:<line>`, relative to cwd).
+	 * @param paths feature paths to run
+	 * @param profileName cucumber profile
+	 * @param cwd folder holding the cucumber configuration
+	 */
+	public async run(paths: string[], profileName: string, cwd: string, selectiveLoad: boolean = true) {
+		const cp = spawn(
+			this.ctvConfig.runCommand(),
+			this.getCommandArgs(paths, profileName, selectiveLoad),
+			this.spawnOptions(cwd)
+		);
 		return new TestOutputScanner(cp);
 	}
 
-	public async debug(filePath: string, lineNumber: number, profileName: string, scenario: ParsedScenario) {
-		// if we're running on windows and the path starts
-		// with a leading slash we need to strip
-		// off the leading slash
-		if (isWindows() && filePath.startsWith('/')) {
-			filePath = normalizeDriveLetter(filePath.substring(1));
-		}
-		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
-		if (scenario.args) {
-			args.push(...scenario.args);
-		}
-		const cp = spawn(this.ctvConfig.runCommand(true), args, {
-			cwd: scenario.cwd,
-			shell: true,
-			stdio: 'pipe',
-			// eslint-disable-next-line @typescript-eslint/naming-convention
-			env: { ...process.env, FORCE_COLOR: '1' }
-		});
+	/**
+	 * Same as run, with the Node inspector enabled and a debug session attached.
+	 */
+	public async debug(paths: string[], profileName: string, cwd: string, selectiveLoad: boolean = true) {
+		const cp = spawn(
+			this.ctvConfig.runCommand(true),
+			this.getCommandArgs(paths, profileName, selectiveLoad),
+			this.spawnOptions(cwd)
+		);
 
 		vscode.debug.startDebugging(undefined, this.getDebugConfig());
 
@@ -81,28 +66,44 @@ export class CucumberTestRunner {
 		return new TestOutputScanner(cp);
 	}
 
+	private spawnOptions = (cwd: string): SpawnOptionsWithoutStdio => {
+		// FORCE_COLOR keeps cucumber's colors in the Test Results terminal. Node warns
+		// when NO_COLOR is set alongside it, so drop NO_COLOR from the child's environment.
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		const env: NodeJS.ProcessEnv = { ...process.env, FORCE_COLOR: '1' };
+		delete env.NO_COLOR;
+		return { cwd, shell: true, env };
+	};
+
 	/**
-	 * Helper used to get commang arguments
-	 * @param scenario scenario to debug
-	 * @returns
+	 * Builds the CLI arguments: profile, configured options, the message
+	 * formatter on stdout (which is what the scanner reads results from)
+	 * and the feature paths.
+	 * @param paths feature paths to run
+	 * @param profileName cucumber profile
+	 * @param selectiveLoad false for a run that loads everything anyway
 	 */
-	private getCommandArgs = (scenario: string, profileName: string): string[] => {
+	private getCommandArgs = (paths: string[], profileName: string, selectiveLoad: boolean): string[] => {
 		const args: string[] = [];
 
 		// add the profile
 		args.push('-p');
 		args.push(profileName);
 
-		const runtimeArgs = this.ctvConfig.runtimeArgs();
+		const runtimeArgs = this.ctvConfig.runtimeArgs(undefined, selectiveLoad);
 		pushMany(args, runtimeArgs);
-		args.push(scenario.trim());
+		args.push('--format');
+		args.push('message');
+		pushMany(
+			args,
+			paths.map(p => quote(p))
+		);
 
 		return args;
 	};
 
 	/**
 	 * Helper used to get debug configuration
-	 * @param scenario scenario to debug
 	 * @returns
 	 */
 	private getDebugConfig = (): vscode.DebugConfiguration => {

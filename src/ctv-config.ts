@@ -94,17 +94,30 @@ export default class CtvConfig {
 	}
 
 	/**
+	 * Pass --selective-load so a run loads only the support files the selected scenarios use
+	 */
+	public get selectiveLoad(): boolean {
+		return vscode.workspace.getConfiguration().get('cucumber-tsflow.selectiveLoad') ?? true;
+	}
+
+	/**
 	 * Get runtime arguments for Cucumber execution
 	 * @param options
+	 * @param selectiveLoad false when the run loads every support file anyway
 	 * @returns
 	 */
-	public runtimeArgs = (options?: string[]): string[] => {
+	public runtimeArgs = (options?: string[], selectiveLoad: boolean = true): string[] => {
 		const args: string[] = [];
 
 		// custom config path?
 		if (this.configFile && this.configFile !== '') {
 			args.push('-c');
 			args.push(this.configFile);
+		}
+
+		// cucumber-tsflow 8.0 selective loading; off leaves it to the cucumber profile
+		if (selectiveLoad && this.selectiveLoad) {
+			args.push('--selective-load');
 		}
 
 		const setOptions = new Set(options);
