@@ -3,7 +3,7 @@ import { ParsedFeature, ParsedScenario, ParsedStep, StepFileFeature } from '../t
 import { hasStringValue } from '@lynxwall/cucumber-tsflow/lib/utils/helpers';
 import { hasMatchingStep, hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 import { stepFileFeatures } from '../cucumber/step-file-features';
-import { normalizePath } from '../utils';
+import { isSamePath, normalizePath } from '../utils';
 
 export class StepInfo {
 	constructor(name: string) {
@@ -64,7 +64,7 @@ export default class GherkinManager {
 		if (gherkinPath.indexOf('\\') >= 0 && vscodePath.indexOf('/') >= 0) {
 			gherkinPath = normalizePath(`/${gherkinPath}`);
 		}
-		return gherkinPath === vscodePath;
+		return isSamePath(gherkinPath, vscodePath);
 	};
 
 	/**
