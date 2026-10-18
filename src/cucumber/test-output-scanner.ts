@@ -68,9 +68,9 @@ export type RequestedScenario = {
 
 /**
  * Key for a scenario: the feature file relative to the working directory the
- * CLI runs in, plus the line of its Scenario or Scenario Outline keyword.
- * Cucumber reports the file the same way in its messages, so both sides of
- * the mapping go through here.
+ * CLI runs in, plus the line of its Scenario keyword or, for an example of a
+ * Scenario Outline, of its table row. Cucumber reports the file and the line
+ * the same way in its messages, so both sides of the mapping go through here.
  */
 export const scenarioKey = (cwd: string, featureFile: string, line: number): string => {
 	const relative = normalizePath(path.relative(cwd, path.resolve(cwd, featureFile)));
@@ -109,7 +109,7 @@ type Envelope = {
 	testCaseFinished?: { testCaseStartedId: string; willBeRetried: boolean; timestamp: Timestamp };
 };
 
-// Worst result wins when a Scenario Outline's examples are folded into one test item
+// Worst result wins when more than one test case reports to the same test item
 const severity: Record<Status, number> = {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	PASSED: 0,
@@ -200,9 +200,15 @@ export const scanTestRun = async (
 		}
 	};
 
+	// A pickle is located at its Scenario keyword or, for an example of a
+	// Scenario Outline, at its table row; that is how the tree keys its leaves.
+	// The line of the Scenario keyword from the gherkin document is the fallback.
 	const trackerFor = (pickle: Pickle): Tracker | undefined => {
-		const line = scenarioLines.get(pickle.astNodeIds[0]) ?? pickle.location?.line;
-		return line === undefined ? undefined : trackers.get(scenarioKey(cwd, pickle.uri, line));
+		const scenarioLine = scenarioLines.get(pickle.astNodeIds[0]);
+		const byLocation = pickle.location ? trackers.get(scenarioKey(cwd, pickle.uri, pickle.location.line)) : undefined;
+		return (
+			byLocation ?? (scenarioLine === undefined ? undefined : trackers.get(scenarioKey(cwd, pickle.uri, scenarioLine)))
+		);
 	};
 
 	const finalize = (tracker: Tracker) => {

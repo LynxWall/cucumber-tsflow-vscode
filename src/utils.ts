@@ -27,6 +27,17 @@ export const normalizeDriveLetter = (path: string): string => {
 	return isWindows() ? path.replace(/^[a-z]:/, drive => drive.toUpperCase()) : path;
 };
 
+/**
+ * Whether two file paths name the same file. Paths from VS Code (`Uri.fsPath`) have a lowercase drive letter and
+ * paths built from the project path an uppercase one (see normalizeDriveLetter), and separators differ, so paths are
+ * never compared with `===`; on Windows the comparison ignores case.
+ */
+export const isSamePath = (a: string, b: string): boolean => {
+	const left = normalizePath(a);
+	const right = normalizePath(b);
+	return isWindows() ? left.toLowerCase() === right.toLowerCase() : left === right;
+};
+
 export const escapeRegExp = (s: string): string => {
 	const escapedString = s.replace(/[.*+?^${}<>()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 	return escapedString.replace(/\\\(\\\.\\\*\\\?\\\)/g, '(.*?)'); // should revert the escaping of match all regex patterns.

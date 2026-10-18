@@ -202,22 +202,32 @@ export default class GherkinFeature {
 	private parseScenarioOutlineExample = (
 		exampleTableRow: any,
 		outlineScenario: ParsedScenario,
-		exampleSetTags: string[]
+		exampleSetTags: string[],
+		lineNumber: number
 	) => {
 		return {
 			title: this.getOutlineDynamicTitle(exampleTableRow, outlineScenario.title),
 			steps: this.parseScenarioOutlineExampleSteps(exampleTableRow, outlineScenario.steps),
 			tags: Array.from(new Set<string>([...outlineScenario.tags, ...exampleSetTags])),
 			exampleRow: exampleTableRow,
+			lineNumber,
 			cwd: outlineScenario.cwd
 		} as ParsedScenario;
 	};
 
+	// Each example keeps the line of its table row: that is where cucumber
+	// reports the example's pickle and how a single example is run (`<feature>:<row line>`).
 	private parseScenarioOutlineExampleSet = (astExampleSet: any, outlineScenario: ParsedScenario) => {
 		const exampleTable = this.parseDataTable(astExampleSet.tableBody, astExampleSet.tableHeader);
+		const exampleSetTags = this.parseTags(astExampleSet);
 
-		return exampleTable.map(tableRow =>
-			this.parseScenarioOutlineExample(tableRow, outlineScenario, this.parseTags(astExampleSet))
+		return exampleTable.map((tableRow, rowIdx) =>
+			this.parseScenarioOutlineExample(
+				tableRow,
+				outlineScenario,
+				exampleSetTags,
+				astExampleSet.tableBody[rowIdx].location.line
+			)
 		);
 	};
 

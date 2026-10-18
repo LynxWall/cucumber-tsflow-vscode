@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { StepInfo } from '../gherkin/gherkin-manager';
 import { CucumberProject, FeatureStepMatch, ParsedFeature } from '../types';
 import { TextDocument } from 'vscode';
+import { isSamePath } from '../utils';
 
 const getDefaultProfile = (profileNames: string[]): string => {
 	if (profileNames.indexOf('default') >= 0) {
@@ -52,9 +53,7 @@ export default class StepFileManager {
 	};
 
 	public getParsedFeature = async (uri: vscode.Uri): Promise<ParsedFeature | undefined> => {
-		return this.cucumberProject.gherkin.parsedFeatures.find(
-			(x: { featureFile: string }) => x.featureFile === uri.fsPath
-		);
+		return this.cucumberProject.gherkin.parsedFeatures.find(x => isSamePath(x.featureFile, uri.fsPath));
 	};
 
 	/**

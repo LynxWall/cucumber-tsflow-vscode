@@ -119,6 +119,13 @@ to close the window when they are done with the checklist, or leave it open for 
 
 ## Known facts
 
+- VS Code opens **one** Extension Development Host per `--extensionDevelopmentPath`: a second launch with the same
+  path reloads that window instead of opening another, and any folder that is already open in some window
+  (another host, a normal window) is dropped from the request, which leaves the host empty and no
+  `Cucumber TsFlow.log` behind. When the folder is taken, open it through a `.code-workspace` file that lists it
+  (a different workspace identity), and when the path is taken (a worktree whose host is still open), point
+  `--extensionDevelopmentPath` at a junction to it. The `vscode.git\Git.log` line
+  `Initial repository scan completed - repositories (0)` is the quick tell for an empty host.
 - The host runs the bundle in `out/extension.js`. After a code change, `yarn build`, then
   `Developer: Reload Window` in the host window picks up the new bundle; a relaunch is not needed.
 - The extension resolves `projectPath` to the shallowest `node_modules/@lynxwall/` under the first workspace
