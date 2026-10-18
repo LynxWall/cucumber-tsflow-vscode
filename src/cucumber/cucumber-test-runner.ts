@@ -67,6 +67,9 @@ export class CucumberTestRunner {
 	}
 
 	private spawnOptions = (cwd: string): SpawnOptionsWithoutStdio => {
+		// cwd and the bin path in runCommand() already carry an uppercase drive letter (normalizeDriveLetter in
+		// utils.ts). cucumber-tsflow 8.0.1 fixes the lowercase-drive-letter double load in the library itself; the
+		// extension keeps uppercasing for consumers still on 8.0.0.
 		// FORCE_COLOR keeps cucumber's colors in the Test Results terminal. Node warns
 		// when NO_COLOR is set alongside it, so drop NO_COLOR from the child's environment.
 		// eslint-disable-next-line @typescript-eslint/naming-convention

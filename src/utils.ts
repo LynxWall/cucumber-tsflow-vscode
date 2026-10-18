@@ -22,6 +22,9 @@ export const normalizePath = (path: string): string => {
  * given but canonicalizes an ESM path, so a bin path or working directory with a lowercase drive letter makes the
  * CLI load one copy of cucumber-tsflow (and cucumber) and the step files import another, which fails with
  * "calling functions on an instance of Cucumber that isn't running". Uppercase it, the form Node itself produces.
+ *
+ * cucumber-tsflow 8.0.1 fixes this in the library itself (its bin loads the library through a path spelled like the
+ * working directory). The uppercasing stays to protect consumers still on 8.0.0; with 8.0.1 it is harmless.
  */
 export const normalizeDriveLetter = (path: string): string => {
 	return isWindows() ? path.replace(/^[a-z]:/, drive => drive.toUpperCase()) : path;

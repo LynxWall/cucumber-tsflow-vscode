@@ -608,9 +608,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lynxwall/cucumber-tsflow@npm:^8.0.0":
-  version: 8.0.0
-  resolution: "@lynxwall/cucumber-tsflow@npm:8.0.0"
+"@lynxwall/cucumber-tsflow@npm:^8.0.1":
+  version: 8.0.1
+  resolution: "@lynxwall/cucumber-tsflow@npm:8.0.1"
   dependencies:
     "@cucumber/cucumber": ~12.7.0
     "@cucumber/cucumber-expressions": 19.0.0
@@ -642,7 +642,7 @@ __metadata:
       optional: true
   bin:
     cucumber-tsflow: bin/cucumber-tsflow.js
-  checksum: a48b837f71af214475e77a93702fadff4c07408d956911fc6281593db9ef2179376c1ca221d3fb9721f8b1f06a9d9a067a372616801d3a06c5a388e6283bc3dc
+  checksum: 9f6bf9f224d6e13120465c77f74d6f0a31932c5ffdfcef682ed6010594d6f748662668dc7e0e1aa412f44e94ec15d494963009b47e6e166ed77e98ea5899dcbc
   languageName: node
   linkType: hard
 
@@ -1496,7 +1496,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "cucumber-tsflow-vscode@workspace:."
   dependencies:
-    "@lynxwall/cucumber-tsflow": ^8.0.0
+    "@lynxwall/cucumber-tsflow": ^8.0.1
     "@types/minimatch": ^5.1.2
     "@types/mocha": ^10.0.1
     "@types/node": ~22.13.10
