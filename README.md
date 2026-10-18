@@ -23,6 +23,14 @@ The following features have been implemented:
 
   **NOTE**: Code Lens support will use the first (Default) profile selected for each project in the Test Explorer, shown above. If a (Default) profile isn't found it will use the cucumber `default` profile or the first profile found in the associated cucumber configuration file.
 
+- **One cucumber-tsflow process per run** - Running a scenario, a feature, a selection or the whole suite starts cucumber-tsflow once per cucumber configuration and passes every selected scenario to it, so the support code loads once instead of once per scenario. Results are read from cucumber's message stream, so every scenario still gets its own result and duration and a failing step reports its error with a link to the step in the feature file. See [How tests run](#how-tests-run).
+
+- **Scenario Outline examples** - Each example row of a Scenario Outline is its own test item under the outline, labelled with the example's title (plus the row's values when the title has no `<placeholder>`), so the Test Explorer counts, runs and reports examples the way the CLI does. A single example can be run or debugged on its own.
+
+- **Run and debug from the feature file** - Test items carry their line in the feature file, so the run and debug icons in the editor gutter of a `.feature` file and the `Test: Run Test at Cursor` command work alongside the Test Explorer and Code Lens.
+
+- **Live output** - Everything cucumber-tsflow writes while it runs is shown in the Test Results view as it happens, for both run and debug.
+
 The following animation shows multiple projects with multiple profiles in each project (cucumber configuration). In addition, the animation demonstrates debugging one of the steps from the Test Explorer.
 
 ![Run or Debug cucumber-tsflow](images/CucumberVscode.gif)
@@ -37,11 +45,11 @@ This extension **does not** add Code Lens actions to cucumber-tsflow hooks. Howe
 
 - **Support for "multi-root" or "monorepo" projects** - When  a workspace with ***.feature*** files is loaded this extension will search for the first node_modules folder that contains cucumber-tsflow. From there, it will look for all cucumber configuration files and initialize a new test profile in the Test Explorer for each configuration found.
   **NOTE:** With **Isolated** **node_modules** used by pnpm or other package managers configured to use isolated node_modules, **cucumber-tsflow** should be installed in the workspace root project. 
-- **Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v9.1.2/docs/configuration.md) profiles to execute tests in cucumber-tsflow** - You can specify the profile to use in your tests through VS Code Test Explorer settings. The default configuration uses the `default` profile, or first one found if `default` isn't defined in your cucumber configuration.
+- **Uses [cucumber configuration ![](images/external-link-16.png)](https://github.com/cucumber/cucumber-js/blob/v12.7.0/docs/configuration.md) profiles to execute tests in cucumber-tsflow** - You can specify the profile to use in your tests through VS Code Test Explorer settings. The default configuration uses the `default` profile, or first one found if `default` isn't defined in your cucumber configuration.
 
 ## Future Releases
 
-This first release focuses on providing run/debug support in step files using Code Lens in VS Code. Planned future releases will include the following:
+Planned future releases include the following:
 
 - Code snippet generation - Currently cucumber-tsflow will generate code snippets in the terminal output when not able to find matching code for a step. This update will provide the ability to generate complete step definition files for a feature or snippets for scenarios and steps.
 
@@ -55,13 +63,37 @@ This extension requires the following:
 
 Projects that are still on cucumber-tsflow 7.x should use version 2.3.0 of this extension.
 
+The extension checks the version of cucumber-tsflow installed in your project when it activates. If it is older than 8.0.0 nothing is registered, and the reason is written to the **Cucumber TsFlow** output channel (View > Output).
+
 ## Step files and ES Modules
 
 Step files are discovered from the `require` **and** `import` settings of every profile in a cucumber configuration, so Code Lens works for both CommonJS and ES Module projects. Features are loaded from the `paths` setting of the `default` profile (or the first profile when there is no `default`).
 
 ## How tests run
 
-Each run or debug request starts **one** cucumber-tsflow process per cucumber configuration, with every selected scenario passed as `<feature>:<line>` (the feature file when all of its scenarios are selected), so running a feature or the whole suite costs one startup instead of one per scenario. A Scenario Outline is an item at its `Scenario Outline` line with one child per example row, labelled with the example's title (and the row's values when the title has no `<placeholder>`), so the Test Explorer counts examples the way the CLI does: running the outline passes `<feature>:<outline line>`, running a single example passes the line of its row. Results come from cucumber's message stream, so each scenario and each example gets its own result, duration and, on failure, the error with a link to the failing step; the output of the run is shown in Test Results as it happens. Items carry their line in the feature file, so the run and debug icons in the gutter of a feature file and `Test: Run Test at Cursor` work too. A run that covers every feature of a configuration passes no paths at all, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal; a filtered run passes its features sorted the same way, because cucumber runs explicit paths in the order given and suites can be order-dependent. Filtered runs pass `--selective-load` by default (see the `selectiveLoad` setting), which lets cucumber-tsflow 8.0 skip the support files the selected scenarios do not use; a full run loads everything anyway and leaves the flag off.
+The extension does not run cucumber in-process. Each run or debug request starts **one** process per cucumber configuration, using the `cucumber-tsflow` command installed in your project, from the folder that holds the configuration file:
+
+```text
+node <project>/node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow -p <profile> [-c <configFile>] [--selective-load] --format message <feature>[:<line>] ...
+```
+
+- **Which paths are passed** - A run that covers every feature of a configuration passes no paths at all, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal. Any other run passes the selected items: a feature whose scenarios are all selected as the file, a Scenario Outline whose examples are all selected as `<feature>:<outline line>`, and everything else as `<feature>:<line>`. The paths are sorted the way cucumber sorts a glob's matches, because cucumber runs explicit paths in the order given and some suites depend on that order. A list that would exceed the command-line limit is split across several processes.
+
+- **Selective loading** - Filtered runs pass `--selective-load` by default (see the `selectiveLoad` setting), which lets cucumber-tsflow 8.0 skip the support files the selected scenarios do not use. A full run loads everything anyway and leaves the flag off.
+
+- **Results** - Results come from cucumber's message stream (`--format message`), not from the exit code. Each scenario and each example is marked passed, failed or skipped as cucumber finishes it, and a failing step reports its error with a link to the step in the feature file. If the process exits with an error before any scenario starts (a configuration error, an unhandled exception, a failing `BeforeAll` hook), every requested item is marked errored with the tail of the output.
+
+- **Output** - cucumber-tsflow 8.0 writes its own configuration and progress lines to stderr. That output, and anything your support code prints with `console.log`, is shown in the Test Results view as it arrives. A summary line with the counts and the exit code closes each run.
+
+- **Debugging** - Debug starts the same process with the Node inspector listening on port 9777 and attaches a `node` debug session named `Attach Cucumber-tsflow Debug`; the `debugOptions` setting adds to or overrides that attach configuration. Breakpoints in step files, hooks and the code under test all work.
+
+## Troubleshooting
+
+- **The Test Explorer is empty** - Open the **Cucumber TsFlow** output channel. It reports the version of cucumber-tsflow found under the project path, or that version 8.0.0 or higher is required when the install is missing or too old. If the channel stays empty the extension found no `node_modules/@lynxwall` folder under the workspace; the `projectPath` setting points it at the folder whose `node_modules` holds cucumber-tsflow.
+
+- **A scenario is missing from the tree** - Test item ids are derived from titles, so two scenarios in the same feature with the same title collide. The second one is skipped and reported in the output channel as `Duplicate scenario found`; give it a distinct title.
+
+- **A selection fails but the full run passes** - Scenarios that depend on state left behind by an earlier feature pass only when that feature ran first in the same process. A filtered run passes its features in cucumber's sorted order, but anything that relies on a feature outside the selection having run will fail on its own. Run the same `<feature>:<line>` arguments from a terminal to confirm; the fix belongs in the suite.
 
 ## Extension Settings
 
