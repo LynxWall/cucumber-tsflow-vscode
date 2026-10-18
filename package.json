@@ -81,7 +81,7 @@
 		"vscode:prepublish": "npm run -S esbuild-base -- --minify",
 		"esbuild-base": "rimraf out && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --conditions=require --format=cjs --platform=node",
 		"build": "npm run -S esbuild-base -- --sourcemap",
-		"watch": "npm run -S esbuild-base -- --sourcemap --watch",
+		"watch": "npm run -S esbuild-base -- --sourcemap --watch=forever",
 		"format": "prettier --write \"src/**/*.ts\"",
 		"lint": "eslint --ext ts --ignore-path .eslintignore src",
 		"build:test": "rimraf out && tsc -p ./",
