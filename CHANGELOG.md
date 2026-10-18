@@ -18,7 +18,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsf
 
 ### Update
 
-- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.0, whose helper modules moved from `lib/cucumber` to `lib/runtime`. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
+- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.1, whose helper modules moved from `lib/cucumber` to `lib/runtime`. 8.0.1 also fixes the lowercase-drive-letter failure (`instance of Cucumber that isn't running (status: PENDING)`) in the library itself; the extension keeps passing paths with an uppercase drive letter for projects still on 8.0.0, and the minimum supported version stays 8.0.0. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
 - cucumber-tsflow 8.0 writes its own output (configuration lines, startup progress, notices) to stderr. That output is now shown in the Test Results view for both run and debug; only the lines the Node inspector prints when debugging are filtered out. Previously all of stderr was dropped during a debug run.
 - Toolchain: TypeScript 5.9, esbuild 0.25, glob 11 and Node 22 types.
 
