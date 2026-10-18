@@ -17,6 +17,16 @@ export const normalizePath = (path: string): string => {
 	return isWindows() ? path.replace(/\\/g, '/') : path;
 };
 
+/**
+ * VS Code lowercases the drive letter in `Uri.fsPath` and `Uri.path` (`c:\...`). Node keeps a CommonJS path as
+ * given but canonicalizes an ESM path, so a bin path or working directory with a lowercase drive letter makes the
+ * CLI load one copy of cucumber-tsflow (and cucumber) and the step files import another, which fails with
+ * "calling functions on an instance of Cucumber that isn't running". Uppercase it, the form Node itself produces.
+ */
+export const normalizeDriveLetter = (path: string): string => {
+	return isWindows() ? path.replace(/^[a-z]:/, drive => drive.toUpperCase()) : path;
+};
+
 export const escapeRegExp = (s: string): string => {
 	const escapedString = s.replace(/[.*+?^${}<>()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 	return escapedString.replace(/\\\(\\\.\\\*\\\?\\\)/g, '(.*?)'); // should revert the escaping of match all regex patterns.

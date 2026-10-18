@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { globSync } from 'glob';
-import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
+import { quote, normalizePath, normalizeDriveLetter, isNodeExecuteAbleFile } from './utils';
 
 export default class CtvConfig {
 	private workspaceRootPath?: string;
@@ -30,10 +30,10 @@ export default class CtvConfig {
 		if (!projectPath) {
 			return this.currentWorkspaceRootPath;
 		} else if (projectPath.startsWith('./') && vscode.workspace.workspaceFolders) {
-			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			const wsRoot = normalizeDriveLetter(vscode.workspace.workspaceFolders[0].uri.fsPath);
 			return path.join(wsRoot, projectPath);
 		}
-		return projectPath;
+		return normalizeDriveLetter(projectPath);
 	}
 
 	/**
@@ -175,7 +175,7 @@ export default class CtvConfig {
 	 */
 	private get currentWorkspaceRootPath(): string | undefined {
 		if (!this.workspaceRootPath && vscode.workspace.workspaceFolders) {
-			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			const wsRoot = normalizeDriveLetter(vscode.workspace.workspaceFolders[0].uri.fsPath);
 			const lynxwallFiles = globSync('**/node_modules/@lynxwall/', { cwd: wsRoot });
 			if (lynxwallFiles.length > 0) {
 				const rootNode =

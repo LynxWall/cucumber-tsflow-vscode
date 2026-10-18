@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import useCtvConfig from '../use-ctv-config';
-import { isWindows, pushMany } from '../utils';
+import { isWindows, normalizeDriveLetter, pushMany } from '../utils';
 import { spawn } from 'child_process';
 import CtvConfig from '../ctv-config';
 import { TestOutputScanner } from './test-output-scanner';
@@ -20,7 +20,7 @@ export class CucumberTestRunner {
 		// with a leading slash we need to strip
 		// off the leading slash
 		if (isWindows() && filePath.startsWith('/')) {
-			filePath = filePath.substring(1);
+			filePath = normalizeDriveLetter(filePath.substring(1));
 		}
 		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
 		if (scenario.args) {
@@ -41,7 +41,7 @@ export class CucumberTestRunner {
 		// with a leading slash we need to strip
 		// off the leading slash
 		if (isWindows() && filePath.startsWith('/')) {
-			filePath = filePath.substring(1);
+			filePath = normalizeDriveLetter(filePath.substring(1));
 		}
 		const args = this.getCommandArgs(`${filePath}:${lineNumber}`, profileName);
 		if (scenario.args) {

@@ -20,6 +20,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsf
 - Loading tests when a cucumber profile does not define `paths` or `require`. Previously a profile missing either setting threw during activation, leaving the Test Explorer empty for every project in the workspace.
 - Step files listed under the `import` setting (ES Module projects) now get Code Lens support alongside `require`.
 - Two scenarios in a feature whose titles map to the same test id no longer overwrite each other in the Test Explorer. The duplicate is skipped and reported in the `Cucumber TsFlow` output channel.
+- Running or debugging a scenario failed with `You're calling functions (e.g. "Given") on an instance of Cucumber that isn't running (status: PENDING)` in projects whose step files are loaded through `import` (seen with pnpm), while the same command worked from a terminal. VS Code reports Windows paths with a lowercase drive letter, which made Node load a second copy of cucumber-tsflow for the step files; the extension now passes every path with an uppercase drive letter.
 
 ## [2.3.0]
 
