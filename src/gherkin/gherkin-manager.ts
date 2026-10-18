@@ -87,13 +87,14 @@ export default class GherkinManager {
 			}
 			for (let oIdx = 0; oIdx < feature.scenarioOutlines.length; oIdx++) {
 				const scenarioOutline = feature.scenarioOutlines[oIdx];
-				if (scenarioOutline.exampleScenarios.length > 0) {
-					for (let osIdx = 0; osIdx < scenarioOutline.exampleScenarios.length; osIdx++) {
-						const scenario = scenarioOutline.exampleScenarios[osIdx];
-						scenario.lineNumber = scenarioOutline.lineNumber;
-						for (let osIdx = 0; osIdx < scenario.steps.length; osIdx++) {
-							this.findAddStep(sfFeatures, fileSteps, feature, scenario, scenario.steps[osIdx]);
-						}
+				// A lens on one of an outline's steps selects the outline, and with it every
+				// example, so the examples' substituted steps are mapped to one scenario at
+				// the outline's title and line. The examples keep their own row lines.
+				for (let osIdx = 0; osIdx < scenarioOutline.exampleScenarios.length; osIdx++) {
+					const example = scenarioOutline.exampleScenarios[osIdx];
+					const scenario = { ...example, title: scenarioOutline.title, lineNumber: scenarioOutline.lineNumber };
+					for (let stIdx = 0; stIdx < example.steps.length; stIdx++) {
+						this.findAddStep(sfFeatures, fileSteps, feature, scenario, example.steps[stIdx]);
 					}
 				}
 			}
