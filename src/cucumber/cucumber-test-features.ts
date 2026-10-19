@@ -1,14 +1,33 @@
+import * as path from 'path';
 import { TestItem } from 'vscode';
 import { CucumberTestRunner } from './cucumber-test-runner';
 import StepFileManager from './step-file-manager';
+import useCtvConfig from '../use-ctv-config';
 import * as vscode from 'vscode';
-import { CucumberProfile, ParsedFeature, ParsedScenario, TestFeatureStep } from '../types';
+import { CucumberProfile, ParsedFeature, ParsedScenario, ParsedScenarioOutline, TestFeatureStep } from '../types';
 import { normalizePath, toKebabCase } from '../utils';
-import { scanTestOutput } from './test-output-scanner';
-import { sortBy, compose, toLower, prop } from 'ramda';
-import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/cucumber/utils';
+import { RequestedScenario, scanTestRun, scenarioKey } from './test-output-scanner';
+import { hasMatchingTags } from '@lynxwall/cucumber-tsflow/lib/runtime/utils';
 
-const sortByTestLabel = sortBy<vscode.TestItem>(compose(toLower, prop('label')));
+// One cucumber-tsflow process per run. When the feature paths would not fit on a
+// Windows command line (8191 characters, shared with node, the bin and the options)
+// the run is split into several processes.
+const maxPathArgsLength = 6000;
+
+type RunUnit = { pathArg: string; sortKey: string; scenarios: RequestedScenario[] };
+// full: every feature of the project is selected, so the CLI gets no paths and
+// expands the profile's own `paths`, exactly as it does from a terminal
+type RunBatch = { cwd: string; units: RunUnit[]; full: boolean };
+// a selected leaf of the tree: a scenario or one example of a Scenario Outline
+type Selected = { item: TestItem; data: ParsedScenario };
+
+const lineRange = (line: number) => new vscode.Range(line - 1, 0, line - 1, 0);
+// the leaves under a feature item: its scenarios plus the examples of its outlines
+const leafCount = (feature: TestItem): number => {
+	let count = 0;
+	feature.children.forEach(child => (count += child.children.size > 0 ? child.children.size : 1));
+	return count;
+};
 
 export default class CucumberTestFeatures {
 	private scenarioData = new WeakMap<vscode.TestItem, ParsedScenario>();
@@ -51,33 +70,7 @@ export default class CucumberTestFeatures {
 		// feature is valid for this profile ... see if we already processed it
 		if (this.testItems.find(x => x.id === featureId) === undefined) {
 			const item = this.controller.createTestItem(featureId, feature.title, featureUri);
-			const scenarioItems = new Array<TestItem>();
-			if (feature.scenarios.length > 0) {
-				for (let sIdx = 0; sIdx < feature.scenarios.length; sIdx++) {
-					const scenario = feature.scenarios[sIdx];
-					const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-					this.scenarioData.set(testItem, scenario);
-					scenarioItems.push(testItem);
-				}
-			}
-			if (feature.scenarioOutlines.length > 0) {
-				for (let soIdx = 0; soIdx < feature.scenarioOutlines.length; soIdx++) {
-					const scenarioOutline = feature.scenarioOutlines[soIdx];
-					if (scenarioOutline.exampleScenarios.length > 0) {
-						const scenario = scenarioOutline.exampleScenarios[0];
-						scenario.lineNumber = scenarioOutline.lineNumber;
-						const testItem = this.controller.createTestItem(
-							toKebabCase(scenarioOutline.title),
-							scenarioOutline.title,
-							featureUri
-						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
-					}
-				}
-			}
-			item.children.replace(scenarioItems);
-
+			item.children.replace(this.createScenarioItems(feature, featureUri));
 			this.testItems.push(item);
 		}
 	}
@@ -97,30 +90,7 @@ export default class CucumberTestFeatures {
 				testFeature = this.controller.createTestItem(featureId, parsedFeature.title, featureUri);
 				this.testItems.push(testFeature);
 			}
-			const scenarioItems = new Array<TestItem>();
-			for (let sIdx = 0; sIdx < parsedFeature.scenarios.length; sIdx++) {
-				const scenario = parsedFeature.scenarios[sIdx];
-				const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
-				this.scenarioData.set(testItem, scenario);
-				scenarioItems.push(testItem);
-			}
-			if (parsedFeature.scenarioOutlines.length > 0) {
-				for (let soIdx = 0; soIdx < parsedFeature.scenarioOutlines.length; soIdx++) {
-					const scenarioOutline = parsedFeature.scenarioOutlines[soIdx];
-					if (scenarioOutline.exampleScenarios.length > 0) {
-						const scenario = scenarioOutline.exampleScenarios[0];
-						scenario.lineNumber = scenarioOutline.lineNumber;
-						const testItem = this.controller.createTestItem(
-							toKebabCase(scenarioOutline.title),
-							scenarioOutline.title,
-							featureUri
-						);
-						this.scenarioData.set(testItem, scenario);
-						scenarioItems.push(testItem);
-					}
-				}
-			}
-			testFeature.children.replace(scenarioItems);
+			testFeature.children.replace(this.createScenarioItems(parsedFeature, featureUri));
 		}
 	}
 
@@ -173,7 +143,7 @@ export default class CucumberTestFeatures {
 			testFeatureSteps.map(async testFeatureStep => {
 				const testFeature = await this.findFeatureTestItem(testFeatureStep.featureFile);
 				if (testFeature) {
-					// get the requested items
+					// get the requested item: a scenario, or an outline (which runs all of its examples)
 					if (testFeatureStep.lineNumber) {
 						const children = this.getChildNodes(testFeature.children);
 						for (let idx = 0; idx < children.length; idx++) {
@@ -213,17 +183,25 @@ export default class CucumberTestFeatures {
 		await vscode.commands.executeCommand('testing.showMostRecentOutput');
 		await vscode.commands.executeCommand('workbench.action.terminal.clear');
 
-		if (request.include) {
-			const sortedItems = sortByTestLabel(request.include);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
-			}
-		} else if (this.testItems) {
-			const sortedItems = sortByTestLabel(this.testItems);
-			const itemsLen = sortedItems.length;
-			for (let idx = 0; idx < itemsLen; idx++) {
-				await this.runTest(sortedItems[idx], request, run, cancellationToken, profileName, debug);
+		const batches = this.collectBatches(request);
+		for (const batch of batches) {
+			// Suites can be order-dependent, and cucumber runs explicit paths in the
+			// order given. A full run therefore passes no paths (cucumber expands the
+			// profile's `paths` itself, in the same order as from a terminal) and no
+			// --selective-load, which only costs time when everything is loaded anyway.
+			const chunks = batch.full ? [batch.units] : this.chunkUnits(batch.units);
+			for (const chunk of chunks) {
+				if (cancellationToken.isCancellationRequested) {
+					break;
+				}
+				const requested: RequestedScenario[] = [];
+				chunk.forEach(unit => requested.push(...unit.scenarios));
+				requested.forEach(scenario => run.enqueued(scenario.item));
+				const paths = batch.full ? [] : chunk.map(unit => unit.pathArg);
+				const scanner = debug
+					? await this.cucumberTestRunner.debug(paths, profileName, batch.cwd, !batch.full)
+					: await this.cucumberTestRunner.run(paths, profileName, batch.cwd, !batch.full);
+				await scanTestRun(requested, run, scanner, cancellationToken, batch.cwd);
 			}
 		}
 		run.end();
@@ -242,6 +220,85 @@ export default class CucumberTestFeatures {
 	 */
 
 	/**
+	 * Builds the children of a feature item: one item per Scenario and, for each
+	 * Scenario Outline, an item at the outline's line with one child per example
+	 * row, so the Test Explorer counts and reports examples the way the CLI does.
+	 * @param feature
+	 * @param featureUri
+	 */
+	private createScenarioItems(feature: ParsedFeature, featureUri: vscode.Uri): TestItem[] {
+		const scenarioItems = new Array<TestItem>();
+		for (const scenario of feature.scenarios) {
+			const testItem = this.controller.createTestItem(toKebabCase(scenario.title), scenario.title, featureUri);
+			testItem.range = lineRange(scenario.lineNumber);
+			this.addScenarioItem(scenarioItems, testItem, scenario);
+		}
+		for (const outline of feature.scenarioOutlines) {
+			if (outline.exampleScenarios.length === 0) {
+				continue;
+			}
+			const outlineItem = this.controller.createTestItem(toKebabCase(outline.title), outline.title, featureUri);
+			outlineItem.range = lineRange(outline.lineNumber);
+			const exampleItems = new Array<TestItem>();
+			for (const example of outline.exampleScenarios) {
+				// example titles repeat unless the outline's title has a <placeholder>,
+				// so the row line is part of the id and the row's values are shown
+				const exampleItem = this.controller.createTestItem(
+					`${toKebabCase(example.title)}-${example.lineNumber}`,
+					example.title,
+					featureUri
+				);
+				exampleItem.range = lineRange(example.lineNumber);
+				exampleItem.sortText = String(example.lineNumber).padStart(6, '0');
+				if (example.title === outline.title) {
+					exampleItem.description = Object.values(example.exampleRow as Record<string, string>).join(' | ');
+				}
+				this.addScenarioItem(exampleItems, exampleItem, example);
+			}
+			outlineItem.children.replace(exampleItems);
+			this.addScenarioItem(scenarioItems, outlineItem, this.outlineScenario(outline, outline.exampleScenarios[0].cwd));
+		}
+		return scenarioItems;
+	}
+
+	/**
+	 * The scenario data of an outline item: the outline itself at the line of
+	 * its keyword, which runs every example when passed as `<feature>:<line>`.
+	 * @param outline
+	 * @param cwd
+	 */
+	private outlineScenario(outline: ParsedScenarioOutline, cwd: string): ParsedScenario {
+		return {
+			title: outline.title,
+			steps: outline.steps,
+			tags: outline.tags,
+			exampleRow: undefined,
+			lineNumber: outline.lineNumber,
+			skippedViaTagFilter: outline.skippedViaTagFilter,
+			scenarioContext: undefined,
+			args: undefined,
+			cwd
+		};
+	}
+
+	/**
+	 * Adds a scenario TestItem to the list for a feature. TestItem ids are
+	 * kebab-cased titles, so two scenarios whose titles produce the same id
+	 * would collide in the Test Explorer; the duplicate is skipped and reported.
+	 * @param scenarioItems
+	 * @param testItem
+	 * @param scenario
+	 */
+	private addScenarioItem(scenarioItems: Array<TestItem>, testItem: TestItem, scenario: ParsedScenario) {
+		if (scenarioItems.some(x => x.id === testItem.id)) {
+			useCtvConfig().getConfig().cucumberOutput.appendLine(`Duplicate scenario found: "${testItem.label}", Skipping.`);
+		} else {
+			this.scenarioData.set(testItem, scenario);
+			scenarioItems.push(testItem);
+		}
+	}
+
+	/**
 	 * Find a feature TestItem that matches the filePath passed in
 	 * @param filePath
 	 */
@@ -257,61 +314,114 @@ export default class CucumberTestFeatures {
 	}
 
 	/**
-	 * Run a test on the testItem passed in. This is an entry function that
-	 * calls the recursive testRunner below.
-	 * @param testItem
+	 * Groups the selected leaves of a run request (scenarios and the examples of
+	 * Scenario Outlines) into one batch per working directory (the folder holding
+	 * the cucumber configuration). Users can hide or filter out tests from their
+	 * run, so excluded items are left out. A feature whose leaves are all included
+	 * is passed to the CLI as the feature file, an outline whose examples are all
+	 * included as `<feature>:<outline line>`, and anything else as `<feature>:<line>`.
 	 * @param request
-	 * @param run
 	 */
-	private async runTest(
-		testItem: vscode.TestItem,
-		request: vscode.TestRunRequest,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		// Users can hide or filter out tests from their run. If the request says
-		// they've done that for this node, then don't run it.
-		if (request.exclude?.includes(testItem)) {
-			return;
+	private collectBatches(request: vscode.TestRunRequest): RunBatch[] {
+		const roots = request.include ?? this.testItems;
+		const included = new Map<TestItem, Set<TestItem>>(); // feature item -> included leaf items
+		const visit = (item: TestItem) => {
+			if (request.exclude?.includes(item)) {
+				return;
+			}
+			if (item.children.size > 0) {
+				item.children.forEach(child => visit(child));
+			} else if (item.parent) {
+				let feature = item.parent;
+				while (feature.parent) {
+					feature = feature.parent;
+				}
+				const leaves = included.get(feature) ?? new Set<TestItem>();
+				leaves.add(item);
+				included.set(feature, leaves);
+			}
+		};
+		roots.forEach(item => visit(item));
+
+		const batches = new Map<string, RunBatch>();
+		included.forEach((leaves, feature) => {
+			const selected: Selected[] = [];
+			leaves.forEach(item => {
+				const data = this.scenarioData.get(item);
+				if (data) {
+					selected.push({ item, data });
+				}
+			});
+			if (selected.length === 0 || !feature.uri) {
+				return;
+			}
+			const cwd = selected[0].data.cwd;
+			const featurePath = normalizePath(path.relative(cwd, feature.uri.fsPath));
+			const batch = batches.get(cwd) ?? { cwd, units: [], full: false };
+			batches.set(cwd, batch);
+			// cucumber sorts the absolute paths a glob matched with a plain string sort;
+			// the same key here gives a filtered run the order a full run would have
+			const sortKey = path.normalize(feature.uri.fsPath);
+			const requested = (entries: Selected[]): RequestedScenario[] =>
+				entries.map(entry => ({ item: entry.item, key: scenarioKey(cwd, featurePath, entry.data.lineNumber) }));
+			const lineUnit = (line: number, entries: Selected[]): RunUnit => ({
+				pathArg: `${featurePath}:${line}`,
+				sortKey: `${sortKey}:${String(line).padStart(6, '0')}`,
+				scenarios: requested(entries)
+			});
+			if (selected.length === leafCount(feature)) {
+				batch.units.push({ pathArg: featurePath, sortKey, scenarios: requested(selected) });
+				return;
+			}
+			const byOutline = new Map<TestItem, Selected[]>();
+			for (const entry of selected) {
+				const parent = entry.item.parent ?? feature;
+				if (parent === feature) {
+					batch.units.push(lineUnit(entry.data.lineNumber, [entry]));
+				} else {
+					byOutline.set(parent, [...(byOutline.get(parent) ?? []), entry]);
+				}
+			}
+			byOutline.forEach((examples, outline) => {
+				const outlineData = this.scenarioData.get(outline);
+				if (outlineData && examples.length === outline.children.size) {
+					batch.units.push(lineUnit(outlineData.lineNumber, examples));
+				} else {
+					examples.forEach(example => batch.units.push(lineUnit(example.data.lineNumber, [example])));
+				}
+			});
+		});
+		const batchList = Array.from(batches.values());
+		for (const batch of batchList) {
+			batch.units.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
+			// one controller is one project, so its features are all under this cwd
+			batch.full = this.testItems.every(feature => (included.get(feature)?.size ?? 0) === leafCount(feature));
 		}
-		await this.testRunner(testItem, run, cancellationToken, profileName, debug);
+		return batchList;
 	}
 
 	/**
-	 * Recursive function that runs a testItem and all
-	 * children under that testItem, if any.
-	 * @param testItem
-	 * @param run
+	 * Splits the units of a batch so that each chunk's path arguments fit on
+	 * the command line.
+	 * @param units
 	 */
-	private async testRunner(
-		testItem: vscode.TestItem,
-		run: vscode.TestRun,
-		cancellationToken: vscode.CancellationToken,
-		profileName: string,
-		debug: boolean
-	) {
-		if (testItem.children && testItem.children.size > 0) {
-			const children = this.getChildNodes(testItem.children);
-			const sortedChildren = sortByTestLabel(children);
-			for (let idx = 0; idx < sortedChildren.length; idx++) {
-				await this.testRunner(sortedChildren[idx], run, cancellationToken, profileName, debug);
+	private chunkUnits(units: RunUnit[]): RunUnit[][] {
+		const chunks: RunUnit[][] = [];
+		let current: RunUnit[] = [];
+		let length = 0;
+		for (const unit of units) {
+			if (current.length > 0 && length + unit.pathArg.length > maxPathArgsLength) {
+				chunks.push(current);
+				current = [];
+				length = 0;
 			}
-		} else {
-			const scenario = this.scenarioData.get(testItem);
-			if (scenario && !cancellationToken.isCancellationRequested) {
-				run.started(testItem);
-				await scanTestOutput(
-					testItem,
-					run,
-					debug
-						? await this.cucumberTestRunner.debug(testItem.uri!.path, scenario.lineNumber, profileName, scenario)
-						: await this.cucumberTestRunner.run(testItem.uri!.path, scenario.lineNumber, profileName, scenario),
-					cancellationToken
-				);
-			}
+			current.push(unit);
+			length += unit.pathArg.length + 3;
 		}
+		if (current.length > 0) {
+			chunks.push(current);
+		}
+		return chunks;
 	}
 
 	/**

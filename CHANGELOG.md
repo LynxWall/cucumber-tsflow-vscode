@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsflow-vscode.
 
+## [3.0.0]
+
+The headline of this release is speed. cucumber-tsflow 8.0 starts far faster than 7.x (esbuild transpiling with an on-disk cache, in-thread ES Module loaders, startup progress), and the extension now starts it **once per run instead of once per scenario**. On a Vue project with 96 support files a nine-scenario feature went from about a minute to seven seconds, and the full suite of 608 scenarios runs in about 80 seconds from the Test Explorer, the same as from the command line.
+
+### Added
+
+- One cucumber-tsflow process per run instead of one per scenario. Running a feature, a selection or the whole suite now pays the support-code startup once; on a Vue project with 96 support files a nine-scenario feature went from about a minute to seven seconds. Results are read from cucumber's message stream (`--format message`), so every scenario still gets its own result and duration, and a failing step reports its error message with a link to the step in the feature file.
+- Each example of a Scenario Outline is its own test item under the outline, at the line of its table row and labelled with the example's title (plus the row's values when the title has no `<placeholder>`), so the Test Explorer counts and reports examples the way the CLI does instead of folding them into one item per outline. Running the outline runs all of its examples through one `<feature>:<line>`; a single example can be run or debugged on its own. Test items now carry their line in the feature file, which enables the run and debug icons in the gutter of feature files and `Test: Run Test at Cursor`.
+- A run that covers every feature of a configuration passes no paths to the CLI, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal; a filtered run passes its features sorted the same way. cucumber runs explicit paths in the order given, and in an order-dependent suite a different order shows up as failures that the command line does not have.
+- `cucumber-tsflow.selectiveLoad` (default `false`) passes `--selective-load`, cucumber-tsflow 8.0's selective loading, on filtered runs, so they load only the support files the selected scenarios use. It is off by default because the index only knows files that register steps or hooks: a support file that only sets up state at import time is skipped, and a scenario that relies on it fails when run on its own while passing in the full suite. A run of every feature never passes the flag, since it loads everything anyway.
+
+### Update
+
+- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.1, whose helper modules moved from `lib/cucumber` to `lib/runtime`. 8.0.1 also fixes the lowercase-drive-letter failure (`instance of Cucumber that isn't running (status: PENDING)`) in the library itself; the extension keeps passing paths with an uppercase drive letter for projects still on 8.0.0, and the minimum supported version stays 8.0.0. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
+- cucumber-tsflow 8.0 writes its own output (configuration lines, startup progress, notices) to stderr. That output is now shown in the Test Results view for both run and debug; only the lines the Node inspector prints when debugging are filtered out. Previously all of stderr was dropped during a debug run.
+- Toolchain: TypeScript 5.9, esbuild 0.25, glob 11 and Node 22 types.
+- Requires VS Code 1.90 or later (was 1.78): the bundled `glob` 11 needs Node 20, which the extension host first shipped in 1.90. Verified by running the activation test against VS Code 1.90.0.
+- `yarn test` now opens the cucumber-tsflow library checkout as a fixture workspace, activates the extension and checks that the run and debug commands of a discovered project are registered; `CTV_TEST_WORKSPACE` picks another workspace and `CTV_VSCODE_VERSION` another VS Code build.
+
+### Fixed
+
+- Loading tests when a cucumber profile does not define `paths` or `require`. Previously a profile missing either setting threw during activation, leaving the Test Explorer empty for every project in the workspace.
+- Step files listed under the `import` setting (ES Module projects) now get Code Lens support alongside `require`.
+- Two scenarios in a feature whose titles map to the same test id no longer overwrite each other in the Test Explorer. The duplicate is skipped and reported in the `Cucumber TsFlow` output channel.
+- Running or debugging a scenario failed with `You're calling functions (e.g. "Given") on an instance of Cucumber that isn't running (status: PENDING)` in projects whose step files are loaded through `import` (seen with pnpm), while the same command worked from a terminal. VS Code reports Windows paths with a lowercase drive letter, which made Node load a second copy of cucumber-tsflow for the step files; the extension now passes every path with an uppercase drive letter.
+
 ## [2.3.0]
 
 ### Update

@@ -1,10 +1,6 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-	"typescript.tsc.autoDetect": "off",
-	"typescript.tsdk": "node_modules\\typescript\\lib",
 	"npm.packageManager": "yarn",
-	"eslint.packageManager": "yarn",
 	"editor.formatOnPaste": true,
 	"editor.formatOnSave": true,
 	"editor.formatOnType": false,
@@ -33,9 +29,11 @@
 		"out": true // set this to false to include "out" folder in search results
 	},
 
+	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	"js/ts.tsc.autoDetect": "off",
+	"js/ts.tsdk.path": "node_modules\\typescript\\lib",
 	// keep space befor function parens
-	"typescript.format.insertSpaceBeforeFunctionParenthesis": true,
-	"javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+	"js/ts.format.insertSpaceBeforeFunctionParenthesis": true,
 
 	// File type editor settings
 	"[feature]": {
@@ -70,13 +68,9 @@
 		"editor.defaultFormatter": "mikeburgh.xml-format",
 		"editor.tabSize": 2
 	},
-	"nugetpackagemanagergui.nuget.packageVersionsUrls": [
-		"https://api.nuget.org/v3-flatcontainer/{{packageName}}/index.json"
-	],
-	"nugetpackagemanagergui.nuget.searchPackage.urls": ["https://azuresearch-usnc.nuget.org/query"],
 	"workbench.colorCustomizations": {
 		"activityBar.activeBackground": "#28e1bd",
-		"activityBar.activeBorder": "#fa45d4",
+		"activityBar.activeBorder": "#15202b",
 		"activityBar.background": "#28e1bd",
 		"activityBar.foreground": "#15202b",
 		"activityBar.inactiveForeground": "#15202b99",
@@ -86,23 +80,22 @@
 		"statusBar.background": "#1abc9c",
 		"statusBar.foreground": "#15202b",
 		"statusBarItem.hoverBackground": "#148f77",
-		"statusBarItem.remoteBackground": "#1abc9c",
+		"statusBarItem.remoteBackground": "#a31bc4",
 		"statusBarItem.remoteForeground": "#15202b",
 		"titleBar.activeBackground": "#1abc9c",
 		"titleBar.activeForeground": "#15202b",
 		"titleBar.inactiveBackground": "#1abc9c99",
 		"titleBar.inactiveForeground": "#15202b99",
-		"commandCenter.border": "#15202b99"
+		"commandCenter.border": "#15202b99",
+		"activityBarTop.activeBackground": "#28e1bd",
+		"activityBarTop.activeBorder": "#15202b",
+		"activityBarTop.background": "#28e1bd",
+		"activityBarTop.foreground": "#15202b",
+		"activityBarTop.inactiveForeground": "#15202b99",
+		"commandCenter.foreground": "#15202b",
+		"statusBar.debuggingBackground": "#1abc9c",
+		"statusBar.debuggingForeground": "#15202b",
+		"statusBar.inactiveBackground": "#1abc9c"
 	},
-	"peacock.color": "#1abc9c",
-	"markdownlint.config": {
-		"default": true,
-		"MD003": { "style": "atx" },
-		"MD007": { "indent": 2 },
-		"MD032": false,
-		"MD022": false,
-		"MD024": false,
-		"no-hard-tabs": false
-	}
+	"peacock.color": "#1abc9c"
 }
-

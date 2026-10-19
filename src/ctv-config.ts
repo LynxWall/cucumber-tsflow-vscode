@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { sync as globSync } from 'glob';
-import { quote, normalizePath, isNodeExecuteAbleFile } from './utils';
+import { globSync } from 'glob';
+import { quote, normalizePath, normalizeDriveLetter, isNodeExecuteAbleFile } from './utils';
 
 export default class CtvConfig {
 	private workspaceRootPath?: string;
@@ -30,10 +30,10 @@ export default class CtvConfig {
 		if (!projectPath) {
 			return this.currentWorkspaceRootPath;
 		} else if (projectPath.startsWith('./') && vscode.workspace.workspaceFolders) {
-			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			const wsRoot = normalizeDriveLetter(vscode.workspace.workspaceFolders[0].uri.fsPath);
 			return path.join(wsRoot, projectPath);
 		}
-		return projectPath;
+		return normalizeDriveLetter(projectPath);
 	}
 
 	/**
@@ -94,17 +94,32 @@ export default class CtvConfig {
 	}
 
 	/**
+	 * Pass --selective-load so a filtered run loads only the support files the selected scenarios use.
+	 * Off by default: the index only knows files that register steps or hooks, so a support file that only
+	 * sets up state at import time is skipped and scenarios that rely on it fail when run on their own.
+	 */
+	public get selectiveLoad(): boolean {
+		return vscode.workspace.getConfiguration().get('cucumber-tsflow.selectiveLoad') ?? false;
+	}
+
+	/**
 	 * Get runtime arguments for Cucumber execution
 	 * @param options
+	 * @param selectiveLoad false when the run loads every support file anyway
 	 * @returns
 	 */
-	public runtimeArgs = (options?: string[]): string[] => {
+	public runtimeArgs = (options?: string[], selectiveLoad: boolean = true): string[] => {
 		const args: string[] = [];
 
 		// custom config path?
 		if (this.configFile && this.configFile !== '') {
 			args.push('-c');
 			args.push(this.configFile);
+		}
+
+		// cucumber-tsflow 8.0 selective loading; off leaves it to the cucumber profile
+		if (selectiveLoad && this.selectiveLoad) {
+			args.push('--selective-load');
 		}
 
 		const setOptions = new Set(options);
@@ -175,7 +190,7 @@ export default class CtvConfig {
 	 */
 	private get currentWorkspaceRootPath(): string | undefined {
 		if (!this.workspaceRootPath && vscode.workspace.workspaceFolders) {
-			const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			const wsRoot = normalizeDriveLetter(vscode.workspace.workspaceFolders[0].uri.fsPath);
 			const lynxwallFiles = globSync('**/node_modules/@lynxwall/', { cwd: wsRoot });
 			if (lynxwallFiles.length > 0) {
 				const rootNode =
