@@ -4,7 +4,6 @@
 	"typescript.tsc.autoDetect": "off",
 	"typescript.tsdk": "node_modules\\typescript\\lib",
 	"npm.packageManager": "yarn",
-	"eslint.packageManager": "yarn",
 	"editor.formatOnPaste": true,
 	"editor.formatOnSave": true,
 	"editor.formatOnType": false,
@@ -70,10 +69,6 @@
 		"editor.defaultFormatter": "mikeburgh.xml-format",
 		"editor.tabSize": 2
 	},
-	"nugetpackagemanagergui.nuget.packageVersionsUrls": [
-		"https://api.nuget.org/v3-flatcontainer/{{packageName}}/index.json"
-	],
-	"nugetpackagemanagergui.nuget.searchPackage.urls": ["https://azuresearch-usnc.nuget.org/query"],
 	"workbench.colorCustomizations": {
 		"activityBar.activeBackground": "#28e1bd",
 		"activityBar.activeBorder": "#15202b",
@@ -103,15 +98,6 @@
 		"statusBar.debuggingForeground": "#15202b",
 		"statusBar.inactiveBackground": "#1abc9c"
 	},
-	"peacock.color": "#1abc9c",
-	"markdownlint.config": {
-		"default": true,
-		"MD003": { "style": "atx" },
-		"MD007": { "indent": 2 },
-		"MD032": false,
-		"MD022": false,
-		"MD024": false,
-		"no-hard-tabs": false
-	}
+	"peacock.color": "#1abc9c"
 }
 
