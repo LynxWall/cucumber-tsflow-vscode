@@ -94,10 +94,12 @@ export default class CtvConfig {
 	}
 
 	/**
-	 * Pass --selective-load so a run loads only the support files the selected scenarios use
+	 * Pass --selective-load so a filtered run loads only the support files the selected scenarios use.
+	 * Off by default: the index only knows files that register steps or hooks, so a support file that only
+	 * sets up state at import time is skipped and scenarios that rely on it fail when run on their own.
 	 */
 	public get selectiveLoad(): boolean {
-		return vscode.workspace.getConfiguration().get('cucumber-tsflow.selectiveLoad') ?? true;
+		return vscode.workspace.getConfiguration().get('cucumber-tsflow.selectiveLoad') ?? false;
 	}
 
 	/**

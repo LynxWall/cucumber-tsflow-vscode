@@ -75,8 +75,8 @@
 					},
 					"cucumber-tsflow.selectiveLoad": {
 						"type": "boolean",
-						"default": true,
-						"description": "Pass --selective-load to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use (cucumber-tsflow 8.0 selective loading). A run of every feature loads everything anyway and leaves it off. Turn off to let the cucumber profile decide."
+						"default": false,
+						"description": "Pass --selective-load to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use (cucumber-tsflow 8.0 selective loading). Off by default: a support file that only sets up state at import time, without registering a step or hook, is skipped by selective loading, and scenarios that rely on it fail when run on their own. Turn on if every support file registers something."
 					}
 				}
 			}

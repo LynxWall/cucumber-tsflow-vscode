@@ -79,7 +79,7 @@ node <project>/node_modules/@lynxwall/cucumber-tsflow/bin/cucumber-tsflow -p <pr
 
 - **Which paths are passed** - A run that covers every feature of a configuration passes no paths at all, so cucumber expands the profile's `paths` itself and runs the features in the same order as `cucumber-tsflow -p <profile>` from a terminal. Any other run passes the selected items: a feature whose scenarios are all selected as the file, a Scenario Outline whose examples are all selected as `<feature>:<outline line>`, and everything else as `<feature>:<line>`. The paths are sorted the way cucumber sorts a glob's matches, because cucumber runs explicit paths in the order given and some suites depend on that order. A list that would exceed the command-line limit is split across several processes.
 
-- **Selective loading** - Filtered runs pass `--selective-load` by default (see the `selectiveLoad` setting), which lets cucumber-tsflow 8.0 skip the support files the selected scenarios do not use. A full run loads everything anyway and leaves the flag off.
+- **Selective loading** - The `selectiveLoad` setting adds `--selective-load` to filtered runs, which lets cucumber-tsflow 8.0 skip the support files the selected scenarios do not use. It is off by default because the index behind it only knows files that register steps or hooks: a support file that only sets up state when it is imported (a mapper registration, a global) is skipped, and a scenario that relies on it passes in the full suite but fails on its own. Turn it on when every support file registers something; a full run loads everything anyway and never passes the flag.
 
 - **Results** - Results come from cucumber's message stream (`--format message`), not from the exit code. Each scenario and each example is marked passed, failed or skipped as cucumber finishes it, and a failing step reports its error with a link to the step in the feature file. If the process exits with an error before any scenario starts (a configuration error, an unhandled exception, a failing `BeforeAll` hook), every requested item is marked errored with the tail of the output.
 
@@ -115,7 +115,7 @@ This extension contributes the following settings:
 | `debugOptions`            | object  |                                       | Add or overwrite vscode debug configurations (only in debug mode) (e.g. { \"args\": [\"--no-cache\"] }) |
 | `disableCodeLens` | boolean | false | Disable Code Lens feature |
 | `preserveEditorFocus`     | boolean | false                                 | Preserve focus on editor when running tests                  |
-| `selectiveLoad`           | boolean | true                                  | Pass `--selective-load` to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use. Turn off to let the cucumber profile decide. |
+| `selectiveLoad`           | boolean | false                                 | Pass `--selective-load` to cucumber-tsflow on filtered runs so they load only the support files the selected scenarios use. Off by default: a support file that only sets up state at import time, without registering a step or hook, is skipped by selective loading, and scenarios that rely on it fail when run on their own. |
 
 ## Change Log
 
