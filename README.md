@@ -2,6 +2,14 @@
 
 This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v8.0.0** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.90.0** or greater.
 
+## Performance
+
+Version 3.0 of this extension together with cucumber-tsflow 8.0 changes how long a run takes, by a lot:
+
+- **cucumber-tsflow 8.0 starts far faster than 7.x.** The library transpiles with esbuild and caches the output on disk between runs, loads ES Module support code through in-thread hooks, and reports each startup phase as it happens. See the library's [Performance and diagnostics ![](images/external-link-16.png)](https://github.com/LynxWall/cucumber-js-tsflow/blob/master/docs/performance-and-diagnostics.md) guide for the details, the caches and the environment variables that tune them.
+- **The extension starts cucumber-tsflow once per run, not once per scenario.** Earlier versions spawned a process for every scenario, so a feature with nine scenarios paid the support-code startup nine times. Now a run of a scenario, a feature, a selection or the whole suite is one process per cucumber configuration. On a Vue project with 96 support files, a nine-scenario feature went from about a minute to seven seconds, and the full suite of 608 scenarios runs in about 80 seconds from the Test Explorer, the same as from the command line.
+- **Nothing is lost in the Test Explorer.** Results are read from cucumber's message stream, so every scenario and every Scenario Outline example still gets its own result, duration and failure message, with a link to the failing step, and the output streams into Test Results while the run is in progress.
+
 ## Features
 
 The latest release of this extension provides both Test Explorer and Code Lens support in VS Code to allow running and debugging Scenarios using cucumber-tsflow.

@@ -9,6 +9,8 @@ Please see [CONTRIBUTING.md](CONTRIBUTE.md) on how to contribute to cucumber-tsf
 
 ## [3.0.0]
 
+The headline of this release is speed. cucumber-tsflow 8.0 starts far faster than 7.x (esbuild transpiling with an on-disk cache, in-thread ES Module loaders, startup progress), and the extension now starts it **once per run instead of once per scenario**. On a Vue project with 96 support files a nine-scenario feature went from about a minute to seven seconds, and the full suite of 608 scenarios runs in about 80 seconds from the Test Explorer, the same as from the command line.
+
 ### Added
 
 - One cucumber-tsflow process per run instead of one per scenario. Running a feature, a selection or the whole suite now pays the support-code startup once; on a Vue project with 96 support files a nine-scenario feature went from about a minute to seven seconds. Results are read from cucumber's message stream (`--format message`), so every scenario still gets its own result and duration, and a failing step reports its error message with a link to the step in the feature file.
