@@ -1,6 +1,6 @@
 # Cucumber TsFlow for VS Code
 
-This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v8.0.0** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.78.0** or greater.
+This extension provides Run and Debug support for [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) **v8.0.0** or greater in  [VS Code ![](images/external-link-16.png)](https://code.visualstudio.com/)version **1.90.0** or greater.
 
 ## Features
 
@@ -59,7 +59,7 @@ This extension requires the following:
 
 - [cucumber-tsflow ![](images/external-link-16.png)](https://www.npmjs.com/package/@lynxwall/cucumber-tsflow) version **8.0.0** or higher.
 - [Node.js ![](images/external-link-16.png)](https://nodejs.org/) version **22** or higher on the path, which cucumber-tsflow 8 requires.
-- [vscode ![](images/external-link-16.png)](https://code.visualstudio.com/) version **1.78.0** or higher.
+- [vscode ![](images/external-link-16.png)](https://code.visualstudio.com/) version **1.90.0** or higher (the first release whose extension host runs Node.js 20, which the bundled file-matching libraries need).
 
 Projects that are still on cucumber-tsflow 7.x should use version 2.3.0 of this extension.
 
