@@ -1,8 +1,5 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-	"typescript.tsc.autoDetect": "off",
-	"typescript.tsdk": "node_modules\\typescript\\lib",
 	"npm.packageManager": "yarn",
 	"editor.formatOnPaste": true,
 	"editor.formatOnSave": true,
@@ -32,9 +29,11 @@
 		"out": true // set this to false to include "out" folder in search results
 	},
 
+	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	"js/ts.tsc.autoDetect": "off",
+	"js/ts.tsdk.path": "node_modules\\typescript\\lib",
 	// keep space befor function parens
-	"typescript.format.insertSpaceBeforeFunctionParenthesis": true,
-	"javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+	"js/ts.format.insertSpaceBeforeFunctionParenthesis": true,
 
 	// File type editor settings
 	"[feature]": {
@@ -100,4 +99,3 @@
 	},
 	"peacock.color": "#1abc9c"
 }
-
