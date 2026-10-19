@@ -20,8 +20,7 @@ The headline of this release is speed. cucumber-tsflow 8.0 starts far faster tha
 
 ### Update
 
-- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.1, whose helper modules moved from `lib/cucumber` to `lib/runtime`. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
-- Built against @lynxwall/cucumber-tsflow 8.0.1. That release fixes the lowercase-drive-letter failure (`instance of Cucumber that isn't running (status: PENDING)`) in the library itself: its bin now loads the library through a path spelled like the working directory. The extension keeps passing paths with an uppercase drive letter for projects still on 8.0.0; the minimum supported version stays 8.0.0.
+- Now depends on version 8.0.0 or higher of cucumber-tsflow, which requires Node.js 22 or later. The extension is built against @lynxwall/cucumber-tsflow 8.0.1, whose helper modules moved from `lib/cucumber` to `lib/runtime`. 8.0.1 also fixes the lowercase-drive-letter failure (`instance of Cucumber that isn't running (status: PENDING)`) in the library itself; the extension keeps passing paths with an uppercase drive letter for projects still on 8.0.0, and the minimum supported version stays 8.0.0. Projects still on cucumber-tsflow 7.x should stay on extension version 2.3.0.
 - cucumber-tsflow 8.0 writes its own output (configuration lines, startup progress, notices) to stderr. That output is now shown in the Test Results view for both run and debug; only the lines the Node inspector prints when debugging are filtered out. Previously all of stderr was dropped during a debug run.
 - Toolchain: TypeScript 5.9, esbuild 0.25, glob 11 and Node 22 types.
 - Requires VS Code 1.90 or later (was 1.78): the bundled `glob` 11 needs Node 20, which the extension host first shipped in 1.90. Verified by running the activation test against VS Code 1.90.0.
