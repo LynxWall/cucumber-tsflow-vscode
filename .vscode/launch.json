@@ -11,8 +11,13 @@
 			"request": "launch",
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}"],
 			"outFiles": ["${workspaceFolder}/out/**/*.js"],
+			// No postDebugTask: a "Terminate All Tasks" post-task driven by an ${input} command made the Extension
+			// Development Host's extension host crash (exit code 134) right after start on VS Code 1.142.
+			// The watch task simply keeps running and is reused by the next F5.
 			"preLaunchTask": "npm: watch",
-			"postDebugTask": "Terminate All Tasks"
+			// The extension attaches its own debug session (Attach Cucumber-tsflow Debug) to the cucumber-tsflow
+			// processes it spawns, so js-debug need not inject its bootloader into every child process.
+			"autoAttachChildProcesses": false
 		},
 		{
 			"name": "Extension Tests",
